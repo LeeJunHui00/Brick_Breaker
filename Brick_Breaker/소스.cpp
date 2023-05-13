@@ -16,6 +16,7 @@ int		collision_count = 0;
 
 float	radius1, moving_ball_radius;
 
+// 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
 	float	x;
 	float	y;
@@ -23,12 +24,32 @@ typedef struct _Point {
 
 Point	fixed_ball, moving_ball, velocity;
 
+// 공을 그리는 함수
+void Modeling_Circle(float radius, Point CC);
+
+// 공과 공의 충돌을 검사하는 함수
+void Collision_Detection_Between_Balls(void);
+
+// 공과 벽의 충돌을 검사하는 함수
+void Collision_Detection_to_Walls(void);
+
+// 초기화 함수
+void init(void);
+
+// 윈도우 크기 변경 시 호출되는 함수
+void MyReshape(int w, int h);
+
+// 화면을 그리는 함수
+void RenderScene(void);
+
 
 void init(void) {
+	// 고정된 공의 반지름과 초기 위치 설정
 	radius1 = 20.0;
 	fixed_ball.x = width / 2;
 	fixed_ball.y = height / 2;
 
+	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
 	moving_ball.x = width / 2;
 	moving_ball.y = height / 4;
@@ -44,6 +65,7 @@ void MyReshape(int w, int h) {
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
+	// 마우스 왼쪽 버튼 클릭 시 좌표계 원점 이동
 	gluOrtho2D(left, left + width, bottom, bottom + height); // mouse2()
 }
 
@@ -101,7 +123,7 @@ void Collision_Detection_to_Walls(void) {
 }
 
 void RenderScene(void) {
-
+	// 화면 배경색 설정
 	glClearColor(1.0, 1.0, 0.0, 0.0); // Set display-window color to Yellow
 	glClear(GL_COLOR_BUFFER_BIT);
 
