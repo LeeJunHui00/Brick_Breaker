@@ -42,6 +42,8 @@ void MyReshape(int w, int h);
 // 화면을 그리는 함수
 void RenderScene(void);
 
+// 화면 배경색 설정 함수
+void frame_reset(void);
 
 void init(void) {
 	// 고정된 공의 반지름과 초기 위치 설정
@@ -122,11 +124,12 @@ void Collision_Detection_to_Walls(void) {
 
 }
 
-void RenderScene(void) {
-	// 화면 배경색 설정
+void frame_reset(void) {
 	glClearColor(1.0, 1.0, 0.0, 0.0); // Set display-window color to Yellow
 	glClear(GL_COLOR_BUFFER_BIT);
+}
 
+void ball(void) {
 	// 윈도우 중심의 위치에 고정된 공 그리기 
 	glColor3f(1.0, 0.0, 0.0);
 	if (collision_count % 2)
@@ -143,7 +146,14 @@ void RenderScene(void) {
 	// 움직이는 공 그리기 
 	glColor3f(0.0, 0.0, 1.0);
 	Modeling_Circle(moving_ball_radius, moving_ball);
+}
 
+void RenderScene(void) {
+	// 화면 배경색 설정
+	frame_reset();
+
+	// 공 그리기
+	ball();
 
 	glutSwapBuffers();
 	glFlush();
