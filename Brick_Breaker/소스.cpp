@@ -16,6 +16,8 @@ int		collision_count = 0;
 
 float	radius1, moving_ball_radius;
 
+float	stick_x, stick_y;
+
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
 	float	x;
@@ -148,6 +150,16 @@ void ball(void) {
 	Modeling_Circle(moving_ball_radius, moving_ball);
 }
 
+void stick(void) {
+	glColor3f(0.6, 0.6, 0.6);
+	glBegin(GL_POLYGON);
+	glVertex2f(stick_x, stick_y);
+	glVertex2f(stick_x + 95.0, stick_y);
+	glVertex2f(stick_x + 95.0, stick_y + 25.0);
+	glVertex2f(stick_x, stick_y + 25.0);
+	glEnd();
+}
+
 void RenderScene(void) {
 	// 화면 배경색 설정
 	frame_reset();
@@ -155,6 +167,8 @@ void RenderScene(void) {
 	// 공 그리기
 	ball();
 
+	// 막대 그리기
+	stick();
 	glutSwapBuffers();
 	glFlush();
 }
