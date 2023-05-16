@@ -54,6 +54,12 @@ void frame_reset(void);
 // 스틱 그리는 함수
 void stick(void);
 
+// 중앙 공 지우기
+
+// 공 대신 블럭 부수기로
+
+// 
+
 void init(void) {
 	// 고정된 공의 반지름과 초기 위치 설정
 	radius1 = 20.0;
@@ -133,7 +139,6 @@ void Collision_Detection_to_Walls(void) {
 		velocity.y = velocity.y * -1;
 
 	}
-
 }
 
 void Collision_Detection_With_Stick(void) {
