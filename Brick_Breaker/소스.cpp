@@ -34,6 +34,8 @@ typedef struct _Block {
 } Block;
 
 Point	moving_ball, ball_velocity;		// 움직이는 공, 속도 관련
+Point	brick_center;
+Point	dist, unit_dist;
 Block	blocks[num_blocks];
 
 // 공을 그리는 함수
@@ -216,23 +218,31 @@ void Collision_Detection_to_Brick(Block& block) {
 	//ball_velocity.x = velocity_norm * cos(angle_out);
 	//ball_velocity.y = velocity_norm * sin(angle_out);
 
-	float ball_center_x = moving_ball.x;
-	float ball_center_y = moving_ball.y;
-	float brick_center_x = block.x + block.width / 2;
-	float brick_center_y = block.y + block.height / 2;
+	float dotProduct, norm;
 
-	float dist_x = ball_center_x - brick_center_x;
-	float dist_y = ball_center_y - brick_center_y;
-	float norm = sqrt(pow(dist_x, 2) + pow(dist_y, 2));
+	// 블럭의 중심 좌표 가져옴
+	brick_center.x = block.x + block.width / 2;
+	brick_center.y = block.y + block.height / 2;
 
+	// 공과 블록 중심 사이의 거리 백터 계산
+	dist.x = moving_ball.x - brick_center.x;
+	dist.y = moving_ball.y - brick_center.y;
+
+	// 거리 백터의 크기 계산
+	norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+
+	//공과 블럭이 충돌 했는지 확인
 	if (norm <= (moving_ball_radius + fmin(block.width / 2, block.height / 2))) {
-		float unit_dist_x = dist_x / norm;
-		float unit_dist_y = dist_y / norm;
+		// 법선 백터 계산
+		unit_dist.x = dist.x / norm;
+		unit_dist.y = dist.y / norm;
 
-		float dotProduct = ball_velocity.x * unit_dist_x + ball_velocity.y * unit_dist_y;
+		// 공 속도 백터와 법선 백터의 내적 계산
+		dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
 
-		ball_velocity.x -= 2.0f * dotProduct * unit_dist_x;
-		ball_velocity.y -= 2.0f * dotProduct * unit_dist_y;
+		// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+		ball_velocity.x -= 2.0f * dotProduct * unit_dist.x;
+		ball_velocity.y -= 2.0f * dotProduct * unit_dist.y;
 	}
 }
 
@@ -245,6 +255,9 @@ void ball(void) {
 	// 충돌 처리 부분
 	Collision_Detection_to_Walls();			// 공과 벽의 충돌 함수 
 	Collision_Detection_With_Stick();		// 공과 스틱의 충돌 함수 
+	for (int i = 0; i < num_blocks; i++) {
+		Collision_Detection_to_Brick(blocks[i]);
+	}
 
 	// 움직이는 공의 위치 변화 
 	moving_ball.x += ball_velocity.x;
@@ -275,17 +288,18 @@ void RenderScene(void) {
 	// 화면 배경색 설정
 	frame_reset();
 
-	// 블럭 그리기
-	for (int i = 0; i < num_blocks; i++) {
-		Modeling_Block(blocks[i]);
-		Collision_Detection_to_Brick(blocks[i]);
-	}
 
 	// 공 그리기
 	ball();
 
 	// 스틱 그리기
 	Modeling_Stick();
+
+	// 블럭 그리기
+	for (int i = 0; i < num_blocks; i++) {
+		Modeling_Block(blocks[i]);
+		//Collision_Detection_to_Brick(blocks[i]);
+	}
 
 	glutSwapBuffers();
 	glFlush();
