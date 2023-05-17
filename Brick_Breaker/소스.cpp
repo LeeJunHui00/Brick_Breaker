@@ -4,20 +4,22 @@
 #include <math.h>
 #include <stdio.h>
 
-#define	width 			1200
-#define	height			600
+#define	WIDTH 			1200
+#define	HEIGHT			600
 #define	PI				3.1415
-#define	polygon_num		50
+#define	POLYGON_num		50
 
 int		left = 0;
 int		bottom = 0;
 
-int		collision_count = 0;
+int		collision_count = 0;			// 충돌 횟수 체크
 
-float	radius1, moving_ball_radius;
+float	moving_ball_radius;				// 움직이는 공의 반지름 
 
-float	stick_x, stick_y;
-float	move = 10;
+float	stick_x, stick_y;				// 스틱의 가로,세로
+float	stick_velocity = 10;			// 스틱 움직이는 속도
+
+const int		num_blocks = 10;				// 블럭 개수 설정
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -25,13 +27,22 @@ typedef struct _Point {
 	float	y;
 } Point;
 
-Point	fixed_ball, moving_ball, velocity;
+typedef struct _Block {
+	float	x;
+	float	y;
+	float	width;
+	float	height;
+	bool	visible;
+} Block;
+
+Point	moving_ball, ball_velocity;		// 움직이는 공, 속도 관련
+Block	blocks[num_blocks];
 
 // 공을 그리는 함수
 void Modeling_Circle(float radius, Point CC);
 
 // 공과 공의 충돌을 검사하는 함수
-void Collision_Detection_Between_Balls(void);
+//void Collision_Detection_Between_Balls(void);
 
 // 공과 벽의 충돌을 검사하는 함수
 void Collision_Detection_to_Walls(void);
@@ -52,28 +63,45 @@ void RenderScene(void);
 void frame_reset(void);
 
 // 스틱 그리는 함수
-void stick(void);
-
-// 중앙 공 지우기
+void Modeling_Stick(void);
 
 // 공 대신 블럭 부수기로
 
-// 
+// 블럭 생성 및 초기화 함수
+void init_blocks(void);
+
+// 블럭 그리기 함수
+void Modeling_Block(const Block& block);
 
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
-	moving_ball.x = width / 2;
-	moving_ball.y = height / 4;
+	moving_ball.x = WIDTH / 2;
+	moving_ball.y = HEIGHT / 4;
 
-	velocity.x = 0.0;
-	velocity.y = 0.3;
+	ball_velocity.x = 0.0;
+	ball_velocity.y = 0.3;
 
 	collision_count = 1;
 
 	// 스틱 초기위치 
-	stick_x = width / 2 - 95.0 / 2;
+	stick_x = WIDTH / 2 - 95.0 / 2;
 	stick_y = 10.0;
+}
+
+
+void init_blocks(void) {
+	float	block_width		= 60;
+	float	block_height	= 30;
+	
+	for (int i = 0; i < num_blocks; i++) {
+		blocks[i].x = 200 + i * (block_width + 10);
+		blocks[i].y = 500;
+
+		blocks[i].width = block_width;
+		blocks[i].height = block_height;
+		blocks[i].visible = true;
+	}
 }
 
 
@@ -82,56 +110,76 @@ void MyReshape(int w, int h) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	// 마우스 왼쪽 버튼 클릭 시 좌표계 원점 이동
-	gluOrtho2D(left, left + width, bottom, bottom + height); // mouse2()
+	gluOrtho2D(left, left + WIDTH, bottom, bottom + HEIGHT); // mouse2()
 }
 
 
 void	Modeling_Circle(float radius, Point CC) {
 	float	delta;
 
-	delta = 2 * PI / polygon_num;
+	delta = 2 * PI / POLYGON_num;
 	glBegin(GL_POLYGON);
-	for (int i = 0; i < polygon_num; i++)
+	for (int i = 0; i < POLYGON_num; i++)
 		glVertex2f(CC.x + radius * cos(delta * i), CC.y + radius * sin(delta * i));
 	glEnd();
 }
 
-void Collision_Detection_Between_Balls(void) {
-	float	distance;
-
-	float	delta_x;
-	float	delta_y;
-
-	delta_x = fixed_ball.x - moving_ball.x;
-	delta_y = fixed_ball.y - moving_ball.y;
-
-	distance = sqrt(delta_x * delta_x + delta_y * delta_y);
-
-	if (distance <= radius1 + moving_ball_radius) {
-		printf("fixed 공 충돌함\n");
-		velocity.x = velocity.x * -1;
-		velocity.y = velocity.y * -1;
-		collision_count++;
-	}
+void Modeling_Stick(void) {
+	glColor3f(0.6, 0.6, 0.6);
+	glBegin(GL_POLYGON);
+	glVertex2f(stick_x, stick_y);
+	glVertex2f(stick_x + 95.0, stick_y);
+	glVertex2f(stick_x + 95.0, stick_y + 25.0);
+	glVertex2f(stick_x, stick_y + 25.0);
+	glEnd();
 }
+
+void Modeling_Block(const Block &block) {
+	glColor3f(0.5, 0.5, 0.5);
+	glBegin(GL_POLYGON);
+	glVertex2f(block.x, block.y);
+	glVertex2f(block.x + block.width, block.y);
+	glVertex2f(block.x + block.width, block.y + block.height);
+	glVertex2f(block.x, block.y + block.height);
+	glEnd();
+}
+
+//void Collision_Detection_Between_Balls(void) {
+//	float	distance;
+//
+//	float	delta_x;
+//	float	delta_y;
+//
+//	delta_x = fixed_ball.x - moving_ball.x;
+//	delta_y = fixed_ball.y - moving_ball.y;
+//
+//	distance = sqrt(delta_x * delta_x + delta_y * delta_y);
+//
+//	if (distance <= radius1 + moving_ball_radius) {
+//		printf("fixed 공 충돌함\n");
+//		velocity.x = velocity.x * -1;
+//		velocity.y = velocity.y * -1;
+//		collision_count++;
+//	}
+//}
 
 void Collision_Detection_to_Walls(void) {
 
 	if (left >= moving_ball.x - moving_ball_radius) {
 		printf("왼쪽 충돌함\n");
-		velocity.x = velocity.x * -1;
+		ball_velocity.x = ball_velocity.x * -1;
 	}
-	else if (width <= moving_ball.x + moving_ball_radius) {
+	else if (WIDTH <= moving_ball.x + moving_ball_radius) {
 		printf("오른쪽 충돌함\n");
-		velocity.x = velocity.x * -1;
+		ball_velocity.x = ball_velocity.x * -1;
 	}
-	else if (height <= moving_ball.y + moving_ball_radius) {
+	else if (HEIGHT <= moving_ball.y + moving_ball_radius) {
 		printf("위 충돌함\n");
-		velocity.y = velocity.y * -1;
+		ball_velocity.y = ball_velocity.y * -1;
 	}
 	else if (bottom >= moving_ball.y - moving_ball_radius) {
 		printf("아래 충돌함\n");
-		velocity.y = velocity.y * -1;
+		ball_velocity.y = ball_velocity.y * -1;
 
 	}
 }
@@ -140,7 +188,7 @@ void Collision_Detection_With_Stick(void) {
 	if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
 		moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
 		printf("스틱에 충돌함\n");
-		velocity.y = velocity.y * -1;
+		ball_velocity.y = ball_velocity.y * -1;
 	}
 }
 
@@ -155,32 +203,23 @@ void ball(void) {
 	Collision_Detection_With_Stick();		// 공과 스틱의 충돌 함수 
 
 	// 움직이는 공의 위치 변화 
-	moving_ball.x += velocity.x;
-	moving_ball.y += velocity.y;
+	moving_ball.x += ball_velocity.x;
+	moving_ball.y += ball_velocity.y;
 
 	// 움직이는 공 그리기 
 	glColor3f(0.0, 0.0, 1.0);
 	Modeling_Circle(moving_ball_radius, moving_ball);
 }
 
-void stick(void) {
-	glColor3f(0.6, 0.6, 0.6);
-	glBegin(GL_POLYGON);
-	glVertex2f(stick_x, stick_y);
-	glVertex2f(stick_x + 95.0, stick_y);
-	glVertex2f(stick_x + 95.0, stick_y + 25.0);
-	glVertex2f(stick_x, stick_y + 25.0);
-	glEnd();
-}
 
 void MySpecial(int key, int x, int y) {
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		stick_x -= move;
+		stick_x -= stick_velocity;
 		break;
 	case GLUT_KEY_RIGHT:
-		stick_x += move;
+		stick_x += stick_velocity;
 		break;
 	default:
 		break;
@@ -195,8 +234,14 @@ void RenderScene(void) {
 	// 공 그리기
 	ball();
 
-	// 막대 그리기
-	stick();
+	// 스틱 그리기
+	Modeling_Stick();
+
+	// 블럭 그리기 아직 다 출력x
+	for (int i = 0; i < num_blocks; i++) {
+		Modeling_Block(blocks[i]);
+	}
+
 	glutSwapBuffers();
 	glFlush();
 }
@@ -206,9 +251,10 @@ void main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitWindowPosition(100, 100);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-	glutInitWindowSize(width, height);
+	glutInitWindowSize(WIDTH, HEIGHT);
 	glutCreateWindow("Bouncing Ball & Wall");
 	init();
+	init_blocks();
 	glutReshapeFunc(MyReshape);
 	glutDisplayFunc(RenderScene);
 	glutIdleFunc(RenderScene);
