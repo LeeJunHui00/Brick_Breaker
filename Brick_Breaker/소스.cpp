@@ -194,16 +194,46 @@ void Collision_Detection_With_Stick(void) {
 }
 
 void Collision_Detection_to_Brick(Block& block) {
-	float ball_left = moving_ball.x - moving_ball_radius;
-	float ball_right = moving_ball.x + moving_ball_radius;
-	float ball_top = moving_ball.y + moving_ball_radius;
-	float ball_bottom = moving_ball.y - moving_ball_radius;
+	//float ball_left = moving_ball.x - moving_ball_radius;
+	//float ball_right = moving_ball.x + moving_ball_radius;
+	//float ball_top = moving_ball.y + moving_ball_radius;
+	//float ball_bottom = moving_ball.y - moving_ball_radius;
 
-	float block_left = block.x;
-	float block_right = block.x + block.width;
-	float block_top = block.y + block.height;
-	float block_bottom = block.y;
+	//float brick_center_x = block.x + block.width / 2;
+	//float brick_center_y = block.y + block.height / 2;
 
+	//float dist_x = moving_ball.x - brick_center_x;
+	//float dist_y = moving_ball.y - brick_center_y;
+	//float norm = sqrt(pow(dist_x, 2) + pow(dist_y, 2));
+	//float unit_dist_x = dist_x / norm;
+	//float unit_dist_y = dist_y / norm;
+
+	//float angle_in = atan2(unit_dist_y, unit_dist_x);
+	//float angle_out = -angle_in;
+
+	//float velocity_norm = sqrt(ball_velocity.x * ball_velocity.x + ball_velocity.y * ball_velocity.y);
+
+	//ball_velocity.x = velocity_norm * cos(angle_out);
+	//ball_velocity.y = velocity_norm * sin(angle_out);
+
+	float ball_center_x = moving_ball.x;
+	float ball_center_y = moving_ball.y;
+	float brick_center_x = block.x + block.width / 2;
+	float brick_center_y = block.y + block.height / 2;
+
+	float dist_x = ball_center_x - brick_center_x;
+	float dist_y = ball_center_y - brick_center_y;
+	float norm = sqrt(pow(dist_x, 2) + pow(dist_y, 2));
+
+	if (norm <= (moving_ball_radius + fmin(block.width / 2, block.height / 2))) {
+		float unit_dist_x = dist_x / norm;
+		float unit_dist_y = dist_y / norm;
+
+		float dotProduct = ball_velocity.x * unit_dist_x + ball_velocity.y * unit_dist_y;
+
+		ball_velocity.x -= 2.0f * dotProduct * unit_dist_x;
+		ball_velocity.y -= 2.0f * dotProduct * unit_dist_y;
+	}
 }
 
 void frame_reset(void) {
@@ -245,17 +275,17 @@ void RenderScene(void) {
 	// 화면 배경색 설정
 	frame_reset();
 
+	// 블럭 그리기
+	for (int i = 0; i < num_blocks; i++) {
+		Modeling_Block(blocks[i]);
+		Collision_Detection_to_Brick(blocks[i]);
+	}
+
 	// 공 그리기
 	ball();
 
 	// 스틱 그리기
 	Modeling_Stick();
-
-	// 블럭 그리기 아직 다 출력x
-	for (int i = 0; i < num_blocks; i++) {
-		Modeling_Block(blocks[i]);
-		Collision_Detection_to_Brick(blocks[i]);
-	}
 
 	glutSwapBuffers();
 	glFlush();
