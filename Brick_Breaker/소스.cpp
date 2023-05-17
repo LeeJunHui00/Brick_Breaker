@@ -12,14 +12,12 @@
 int		left = 0;
 int		bottom = 0;
 
-int		collision_count = 0;			// 충돌 횟수 체크
-
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 
 float	stick_x, stick_y;				// 스틱의 가로,세로
 float	stick_velocity = 10;			// 스틱 움직이는 속도
 
-const int		num_blocks = 10;				// 블럭 개수 설정
+const int	num_blocks = 10;				// 블럭 개수 설정
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -41,8 +39,11 @@ Block	blocks[num_blocks];
 // 공을 그리는 함수
 void Modeling_Circle(float radius, Point CC);
 
-// 공과 공의 충돌을 검사하는 함수
-//void Collision_Detection_Between_Balls(void);
+// 스틱 그리는 함수
+void Modeling_Stick(void);
+
+// 블럭 그리기 함수
+void Modeling_Block(const Block& block);
 
 // 공과 벽의 충돌을 검사하는 함수
 void Collision_Detection_to_Walls(void);
@@ -50,8 +51,14 @@ void Collision_Detection_to_Walls(void);
 // 공과 스틱의 충돌을 검사하는 함수
 void Collision_Detection_With_Stick(void);
 
+// 공과 블럭의 충돌을 검사하는 함수
+void Collision_Detection_to_Brick(Block& block);
+
 // 초기화 함수
 void init(void);
+
+// 블럭 생성 및 초기화 함수
+void init_blocks(void);
 
 // 윈도우 크기 변경 시 호출되는 함수
 void MyReshape(int w, int h);
@@ -62,16 +69,7 @@ void RenderScene(void);
 // 화면 배경색 설정 함수
 void frame_reset(void);
 
-// 스틱 그리는 함수
-void Modeling_Stick(void);
 
-// 공 대신 블럭 부수기로
-
-// 블럭 생성 및 초기화 함수
-void init_blocks(void);
-
-// 블럭 그리기 함수
-void Modeling_Block(const Block& block);
 
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
@@ -81,8 +79,6 @@ void init(void) {
 
 	ball_velocity.x = 0.0;
 	ball_velocity.y = 0.3;
-
-	collision_count = 1;
 
 	// 스틱 초기위치 
 	stick_x = WIDTH / 2 - 95.0 / 2;
@@ -164,20 +160,25 @@ void Modeling_Block(const Block &block) {
 //}
 
 void Collision_Detection_to_Walls(void) {
+	float ball_left = moving_ball.x - moving_ball_radius;
+	float ball_right = moving_ball.x + moving_ball_radius;
+	float ball_top = moving_ball.y + moving_ball_radius;
+	float ball_bottom = moving_ball.y - moving_ball_radius;
 
-	if (left >= moving_ball.x - moving_ball_radius) {
+
+	if (left >= ball_left) {
 		printf("왼쪽 충돌함\n");
 		ball_velocity.x = ball_velocity.x * -1;
 	}
-	else if (WIDTH <= moving_ball.x + moving_ball_radius) {
+	else if (WIDTH <= ball_right) {
 		printf("오른쪽 충돌함\n");
 		ball_velocity.x = ball_velocity.x * -1;
 	}
-	else if (HEIGHT <= moving_ball.y + moving_ball_radius) {
+	else if (HEIGHT <= ball_top) {
 		printf("위 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
 	}
-	else if (bottom >= moving_ball.y - moving_ball_radius) {
+	else if (bottom >= ball_bottom) {
 		printf("아래 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
 
@@ -190,6 +191,19 @@ void Collision_Detection_With_Stick(void) {
 		printf("스틱에 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
 	}
+}
+
+void Collision_Detection_to_Brick(Block& block) {
+	float ball_left = moving_ball.x - moving_ball_radius;
+	float ball_right = moving_ball.x + moving_ball_radius;
+	float ball_top = moving_ball.y + moving_ball_radius;
+	float ball_bottom = moving_ball.y - moving_ball_radius;
+
+	float block_left = block.x;
+	float block_right = block.x + block.width;
+	float block_top = block.y + block.height;
+	float block_bottom = block.y;
+
 }
 
 void frame_reset(void) {
@@ -240,6 +254,7 @@ void RenderScene(void) {
 	// 블럭 그리기 아직 다 출력x
 	for (int i = 0; i < num_blocks; i++) {
 		Modeling_Block(blocks[i]);
+		Collision_Detection_to_Brick(blocks[i]);
 	}
 
 	glutSwapBuffers();
