@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#define	width 			400
+#define	width 			1200
 #define	height			600
 #define	PI				3.1415
 #define	polygon_num		50
@@ -61,18 +61,13 @@ void stick(void);
 // 
 
 void init(void) {
-	// 고정된 공의 반지름과 초기 위치 설정
-	radius1 = 20.0;
-	fixed_ball.x = width / 2;
-	fixed_ball.y = height / 2;
-
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
 	moving_ball.x = width / 2;
 	moving_ball.y = height / 4;
 
 	velocity.x = 0.0;
-	velocity.y = 0.05;
+	velocity.y = 0.3;
 
 	collision_count = 1;
 
@@ -144,7 +139,7 @@ void Collision_Detection_to_Walls(void) {
 void Collision_Detection_With_Stick(void) {
 	if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
 		moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
-		printf("슬러브 봉에 충돌함\n");
+		printf("스틱에 충돌함\n");
 		velocity.y = velocity.y * -1;
 	}
 }
@@ -155,13 +150,7 @@ void frame_reset(void) {
 }
 
 void ball(void) {
-	// 윈도우 중심의 위치에 고정된 공 그리기 
-	//glColor3f(1.0, 0.0, 0.0);
-	//if (collision_count % 2)
-	//	Modeling_Circle(radius1, fixed_ball);
-
 	// 충돌 처리 부분
-	Collision_Detection_Between_Balls();		// 공과 공의 충돌 함수 
 	Collision_Detection_to_Walls();			// 공과 벽의 충돌 함수 
 	Collision_Detection_With_Stick();		// 공과 스틱의 충돌 함수 
 
