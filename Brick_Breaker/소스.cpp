@@ -47,6 +47,7 @@ typedef struct _POSITION {
 Point	moving_ball, ball_velocity;		// 움직이는 공, 속도 관련
 Point	brick_center, stick_center;
 Point	dist, unit_dist, sdist, unit_sdist;
+Point	closet_block, closet_stick;
 Block	blocks[num_blocks];
 POSITION pos_stick, pos_ball;
 
@@ -91,7 +92,7 @@ void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
 	moving_ball.x = WIDTH / 2;
-	moving_ball.y = HEIGHT / 4;
+	moving_ball.y = HEIGHT / 2;
 
 	ball_velocity.x = 0.3;
 	ball_velocity.y = 0.3;
@@ -147,13 +148,15 @@ void Modeling_Stick(void) {
 }
 
 void Modeling_Block(const Block &block) {
-	glColor3f(0.5, 0.5, 0.5);
-	glBegin(GL_POLYGON);
-	glVertex2f(block.x, block.y);
-	glVertex2f(block.x + block.width, block.y);
-	glVertex2f(block.x + block.width, block.y + block.height);
-	glVertex2f(block.x, block.y + block.height);
-	glEnd();
+	if (block.visible) {
+		glColor3f(0.5, 0.5, 0.5);
+		glBegin(GL_POLYGON);
+		glVertex2f(block.x, block.y);
+		glVertex2f(block.x + block.width, block.y);
+		glVertex2f(block.x + block.width, block.y + block.height);
+		glVertex2f(block.x, block.y + block.height);
+		glEnd();
+	}
 }
 
 //void Collision_Detection_Between_Balls(void) {
@@ -202,18 +205,35 @@ void Collision_Detection_to_Walls(void) {
 }
 
 void Collision_Detection_With_Stick(void) {
-	if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
-		moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
-		printf("스틱에 충돌함\n");
-		ball_velocity.y = ball_velocity.y * -1;
-	}
+	//if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
+	//	moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
+	//	printf("스틱에 충돌함\n");
+	//	ball_velocity.y = ball_velocity.y * -1;
+	//}
 	float dotProduct, norm;
 
 	stick_center.x = stick_x + 95 / 2;
 	stick_center.y = stick_y + 25 / 2;
 
-	sdist.x = moving_ball.x - stick_center.x;
-	sdist.y = moving_ball.y - stick_center.y;
+	closet_stick.x = moving_ball.x;
+	closet_stick.y = moving_ball.y;
+
+	// 가장 가까운 위치
+	if (moving_ball.x < stick_x) {
+		closet_stick.x = stick_x;
+	}
+	else if (moving_ball.x > stick_x + 95) {
+		closet_stick.x = stick_x + 95;
+	}
+	if (moving_ball.y < stick_y) {
+		closet_stick.y = stick_y;
+	}
+	else if (moving_ball.y > stick_y + 25) {
+		closet_stick.y = stick_y + 25;
+	}
+
+	sdist.x = moving_ball.x - closet_stick.x;
+	sdist.y = moving_ball.y - closet_stick.y;
 
 	// 거리 백터의 크기 계산
 	norm = sqrt(pow(sdist.x, 2) + pow(sdist.y, 2));
@@ -235,32 +255,51 @@ void Collision_Detection_With_Stick(void) {
 }
 
 void Collision_Detection_to_Brick(Block& block) {
+	if (block.visible) {
+		float dotProduct, norm;
+		closet_block.x = moving_ball.x;
+		closet_block.y = moving_ball.y;
 
-	float dotProduct, norm;
+		// 블럭의 중심 좌표 가져옴
+		brick_center.x = block.x + block.width / 2;
+		brick_center.y = block.y + block.height / 2;
 
-	// 블럭의 중심 좌표 가져옴
-	brick_center.x = block.x + block.width / 2;
-	brick_center.y = block.y + block.height / 2;
+		// 가장 가까운 위치
+		if (moving_ball.x < block.x) {
+			closet_block.x = block.x;
+		}
+		else if (moving_ball.x > block.x + block.width) {
+			closet_block.x = block.x + block.width;
+		}
+		if (moving_ball.y < block.y) {
+			closet_block.y = block.y;
+		}
+		else if (moving_ball.y > block.y + block.height) {
+			closet_block.y = block.y + block.height;
+		}
 
-	// 공과 블록 중심 사이의 거리 백터 계산
-	dist.x = moving_ball.x - brick_center.x;
-	dist.y = moving_ball.y - brick_center.y;
+		// 공과 블록 중심 사이의 거리 백터 계산
+		dist.x = moving_ball.x - closet_block.x;
+		dist.y = moving_ball.y - closet_block.y;
 
-	// 거리 백터의 크기 계산
-	norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+		// 거리 백터의 크기 계산
+		norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
 
-	//공과 블럭이 충돌 했는지 확인
-	if (norm < (moving_ball_radius + fmin(block.width / 2, block.height / 2))) {
-		// 법선 백터 계산
-		unit_dist.x = dist.x / norm;
-		unit_dist.y = dist.y / norm;
+		//공과 블럭이 충돌 했는지 확인
+		if (norm < (moving_ball_radius)) {
+			// 법선 백터 계산
+			unit_dist.x = dist.x / norm;
+			unit_dist.y = dist.y / norm;
 
-		// 공 속도 백터와 법선 백터의 내적 계산
-		dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
+			// 공 속도 백터와 법선 백터의 내적 계산
+			dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
 
-		// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
-		ball_velocity.x -= 2.0f * dotProduct * unit_dist.x;
-		ball_velocity.y -= 2.0f * dotProduct * unit_dist.y;
+			// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+			ball_velocity.x -= 2 * dotProduct * unit_dist.x;
+			ball_velocity.y -= 2 * dotProduct * unit_dist.y;
+		
+			block.visible = false;
+		}
 	}
 }
 
@@ -327,15 +366,15 @@ void RenderScene(void) {
 		Modeling_Block(blocks[i]);
 		//Collision_Detection_to_Brick(blocks[i]);
 	}
-	//printf("x 속도 : %d, y 속도 : %d\n", ball_velocity.x, ball_velocity.y);
-
-
 	// 글씨 출력해보기
-	int value = 42;
-	char formattedText[255];
+	char formattedText_x[255];
+	char formattedText_y[255];
 
-	sprintf(formattedText, "%f", ball_velocity.x);
-	displayText(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, formattedText);
+	sprintf(formattedText_x, "x speed : %f", ball_velocity.x);
+	sprintf(formattedText_y, "y speed : %f", ball_velocity.y);
+
+	displayText(0.0f, 13.0f, 0.0f, 0.0f, 0.0f, formattedText_x);
+	displayText(0.0f, 3.0f, 0.0f, 0.0f, 0.0f, formattedText_y);
 	//
 
 	glutSwapBuffers();
