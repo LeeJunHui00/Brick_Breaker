@@ -3,6 +3,10 @@
 #include <gl/glut.h> // (or others, depending on the system in use)
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable: 4996)
 
 #define	WIDTH 			1200
 #define	HEIGHT			600
@@ -15,9 +19,9 @@ int		bottom = 0;
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 
 float	stick_x, stick_y;				// 스틱의 가로,세로
-float	stick_velocity = 10;			// 스틱 움직이는 속도
+float	stick_velocity = 20;			// 스틱 움직이는 속도
 
-const int	num_blocks = 10;				// 블럭 개수 설정
+const int	num_blocks = 8;				// 블럭 개수 설정
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -79,7 +83,7 @@ void init(void) {
 	moving_ball.x = WIDTH / 2;
 	moving_ball.y = HEIGHT / 4;
 
-	ball_velocity.x = 0.0;
+	ball_velocity.x = 0.3;
 	ball_velocity.y = 0.3;
 
 	// 스틱 초기위치 
@@ -93,7 +97,7 @@ void init_blocks(void) {
 	float	block_height	= 30;
 	
 	for (int i = 0; i < num_blocks; i++) {
-		blocks[i].x = 200 + i * (block_width + 10);
+		blocks[i].x = 200 + i * (block_width + 50);
 		blocks[i].y = 500;
 
 		blocks[i].width = block_width;
@@ -188,35 +192,59 @@ void Collision_Detection_to_Walls(void) {
 }
 
 void Collision_Detection_With_Stick(void) {
-	if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
-		moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
-		printf("스틱에 충돌함\n");
-		ball_velocity.y = ball_velocity.y * -1;
+	//if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
+	//	moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
+	//	printf("스틱에 충돌함\n");
+	//	ball_velocity.y = ball_velocity.y * -1;
+	//}
+
+	const float min_speed = 0.1f;
+	const float max_speed = 0.5f;
+
+	float ball_left = moving_ball.x - moving_ball_radius;
+	float ball_right = moving_ball.x + moving_ball_radius;
+	float ball_top = moving_ball.y + moving_ball_radius;
+	float ball_bottom = moving_ball.y - moving_ball_radius;
+
+	float stick_left = stick_x;
+	float stick_right = stick_x + 95;
+	float stick_top = stick_y + 25;
+	float stick_bottom = stick_y;
+
+	if (ball_left > stick_right || ball_right < stick_left || ball_top < stick_bottom || ball_bottom > stick_top) {
+		return;
+	}
+
+	float mid_stick = stick_left + 95 / 2;
+
+	// 공이 스틱의 중앙에서 왼쪽에 충돌
+	if (moving_ball.x < mid_stick) {
+		ball_velocity.x -= fabs(moving_ball.x - mid_stick) / 1000;
+	}
+	// 공이 스틱의 중앙에서 오른쪽에 충돌
+	else {
+		ball_velocity.x += fabs(moving_ball.x - mid_stick) / 1000;
+	}
+
+	// 공이 스틱에 닿았으면 위 또는 아래쪽으로 속도를 변경 (반사)
+	if (ball_bottom == stick_top || ball_top == stick_bottom) {
+		ball_velocity.y = -ball_velocity.y;
+	}
+
+	float speed = sqrt(ball_velocity.x * ball_velocity.x + ball_velocity.y * ball_velocity.y);
+	if (speed < min_speed) {
+		float multiplier = min_speed / speed;
+		ball_velocity.x *= multiplier;
+		ball_velocity.y *= multiplier;
+	}
+	else if (speed > max_speed) {
+		float multiplier = max_speed / speed;
+		ball_velocity.x *= multiplier;
+		ball_velocity.y *= multiplier;
 	}
 }
 
 void Collision_Detection_to_Brick(Block& block) {
-	//float ball_left = moving_ball.x - moving_ball_radius;
-	//float ball_right = moving_ball.x + moving_ball_radius;
-	//float ball_top = moving_ball.y + moving_ball_radius;
-	//float ball_bottom = moving_ball.y - moving_ball_radius;
-
-	//float brick_center_x = block.x + block.width / 2;
-	//float brick_center_y = block.y + block.height / 2;
-
-	//float dist_x = moving_ball.x - brick_center_x;
-	//float dist_y = moving_ball.y - brick_center_y;
-	//float norm = sqrt(pow(dist_x, 2) + pow(dist_y, 2));
-	//float unit_dist_x = dist_x / norm;
-	//float unit_dist_y = dist_y / norm;
-
-	//float angle_in = atan2(unit_dist_y, unit_dist_x);
-	//float angle_out = -angle_in;
-
-	//float velocity_norm = sqrt(ball_velocity.x * ball_velocity.x + ball_velocity.y * ball_velocity.y);
-
-	//ball_velocity.x = velocity_norm * cos(angle_out);
-	//ball_velocity.y = velocity_norm * sin(angle_out);
 
 	float dotProduct, norm;
 
@@ -232,7 +260,7 @@ void Collision_Detection_to_Brick(Block& block) {
 	norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
 
 	//공과 블럭이 충돌 했는지 확인
-	if (norm <= (moving_ball_radius + fmin(block.width / 2, block.height / 2))) {
+	if (norm < (moving_ball_radius + fmin(block.width / 2, block.height / 2))) {
 		// 법선 백터 계산
 		unit_dist.x = dist.x / norm;
 		unit_dist.y = dist.y / norm;
