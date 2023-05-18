@@ -37,10 +37,18 @@ typedef struct _Block {
 	bool	visible;
 } Block;
 
+typedef struct _POSITION {
+	float	left;
+	float	right;
+	float	top;
+	float	bottom;
+} POSITION;
+
 Point	moving_ball, ball_velocity;		// 움직이는 공, 속도 관련
-Point	brick_center;
-Point	dist, unit_dist;
+Point	brick_center, stick_center;
+Point	dist, unit_dist, sdist, unit_sdist;
 Block	blocks[num_blocks];
+POSITION pos_stick, pos_ball;
 
 // 공을 그리는 함수
 void Modeling_Circle(float radius, Point CC);
@@ -75,6 +83,8 @@ void RenderScene(void);
 // 화면 배경색 설정 함수
 void frame_reset(void);
 
+// 텍스트 출력 함수
+void displayText(float x, float y, float r, float g, float b, const char* str);
 
 
 void init(void) {
@@ -192,56 +202,36 @@ void Collision_Detection_to_Walls(void) {
 }
 
 void Collision_Detection_With_Stick(void) {
-	//if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
-	//	moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
-	//	printf("스틱에 충돌함\n");
-	//	ball_velocity.y = ball_velocity.y * -1;
-	//}
+	if (moving_ball.y - moving_ball_radius <= stick_y + 25.0 &&
+		moving_ball.x > stick_x && moving_ball.x < stick_x + 95.0) {
+		printf("스틱에 충돌함\n");
+		ball_velocity.y = ball_velocity.y * -1;
+	}
+	float dotProduct, norm;
 
-	const float min_speed = 0.1f;
-	const float max_speed = 0.5f;
+	stick_center.x = stick_x + 95 / 2;
+	stick_center.y = stick_y + 25 / 2;
 
-	float ball_left = moving_ball.x - moving_ball_radius;
-	float ball_right = moving_ball.x + moving_ball_radius;
-	float ball_top = moving_ball.y + moving_ball_radius;
-	float ball_bottom = moving_ball.y - moving_ball_radius;
+	sdist.x = moving_ball.x - stick_center.x;
+	sdist.y = moving_ball.y - stick_center.y;
 
-	float stick_left = stick_x;
-	float stick_right = stick_x + 95;
-	float stick_top = stick_y + 25;
-	float stick_bottom = stick_y;
+	// 거리 백터의 크기 계산
+	norm = sqrt(pow(sdist.x, 2) + pow(sdist.y, 2));
 
-	if (ball_left > stick_right || ball_right < stick_left || ball_top < stick_bottom || ball_bottom > stick_top) {
-		return;
+	//공과 블럭이 충돌 했는지 확인
+	if (norm < (moving_ball_radius + fmin(95 / 2, 25 / 2))) {
+		// 법선 백터 계산
+		unit_sdist.x = sdist.x / norm;
+		unit_sdist.y = sdist.y / norm;
+
+		// 공 속도 백터와 법선 백터의 내적 계산
+		dotProduct = ball_velocity.x * unit_sdist.x + ball_velocity.y * unit_sdist.y;
+
+		// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+		ball_velocity.x -= 2.0f * dotProduct * unit_sdist.x;
+		ball_velocity.y -= 2.0f * dotProduct * unit_sdist.y;
 	}
 
-	float mid_stick = stick_left + 95 / 2;
-
-	// 공이 스틱의 중앙에서 왼쪽에 충돌
-	if (moving_ball.x < mid_stick) {
-		ball_velocity.x -= fabs(moving_ball.x - mid_stick) / 1000;
-	}
-	// 공이 스틱의 중앙에서 오른쪽에 충돌
-	else {
-		ball_velocity.x += fabs(moving_ball.x - mid_stick) / 1000;
-	}
-
-	// 공이 스틱에 닿았으면 위 또는 아래쪽으로 속도를 변경 (반사)
-	if (ball_bottom == stick_top || ball_top == stick_bottom) {
-		ball_velocity.y = -ball_velocity.y;
-	}
-
-	float speed = sqrt(ball_velocity.x * ball_velocity.x + ball_velocity.y * ball_velocity.y);
-	if (speed < min_speed) {
-		float multiplier = min_speed / speed;
-		ball_velocity.x *= multiplier;
-		ball_velocity.y *= multiplier;
-	}
-	else if (speed > max_speed) {
-		float multiplier = max_speed / speed;
-		ball_velocity.x *= multiplier;
-		ball_velocity.y *= multiplier;
-	}
 }
 
 void Collision_Detection_to_Brick(Block& block) {
@@ -296,6 +286,15 @@ void ball(void) {
 	Modeling_Circle(moving_ball_radius, moving_ball);
 }
 
+void displayText(float x, float y, float r, float g, float b, const char* str) {
+	glColor3f(r, g, b);
+	glRasterPos2f(x, y);
+
+	for (const char* c = str; *c != '\0'; ++c) {
+		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);
+	}
+}
+
 
 void MySpecial(int key, int x, int y) {
 	switch (key)
@@ -328,6 +327,16 @@ void RenderScene(void) {
 		Modeling_Block(blocks[i]);
 		//Collision_Detection_to_Brick(blocks[i]);
 	}
+	//printf("x 속도 : %d, y 속도 : %d\n", ball_velocity.x, ball_velocity.y);
+
+
+	// 글씨 출력해보기
+	int value = 42;
+	char formattedText[255];
+
+	sprintf(formattedText, "%f", ball_velocity.x);
+	displayText(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, formattedText);
+	//
 
 	glutSwapBuffers();
 	glFlush();
