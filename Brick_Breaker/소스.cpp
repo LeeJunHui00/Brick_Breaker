@@ -17,7 +17,7 @@ int		left = 0;
 int		bottom = 0;
 
 float	moving_ball_radius;				// 움직이는 공의 반지름 
-
+float	wall_radius;
 float	stick_x, stick_y;				// 스틱의 가로,세로
 float	stick_velocity = 20;			// 스틱 움직이는 속도
 
@@ -48,6 +48,7 @@ Point	moving_ball, ball_velocity;		// 움직이는 공, 속도 관련
 Point	brick_center, stick_center;
 Point	dist, unit_dist, sdist, unit_sdist;
 Point	closet_block, closet_stick;
+Point	wall;
 Block	blocks[num_blocks];
 POSITION pos_stick, pos_ball;
 
@@ -106,6 +107,11 @@ void init(void) {
 	// 스틱 초기위치 
 	stick_x = WIDTH / 2 - 95.0 / 2;
 	stick_y = 10.0;
+
+	// 벽 초기 위치
+	wall_radius = 400;
+	wall.x = WIDTH / 2;
+	wall.y = HEIGHT / 2;
 }
 
 
@@ -201,42 +207,32 @@ void Modeling_Wall(void) {
 //}
 
 void Collision_Detection_to_Sphere_Walls(void) {
-	float wall_radius = 400;
-	float wall_x = WIDTH / 2;
-	float wall_y = HEIGHT / 2;
-	float distance, d;
-	float correction;
-	float dot;
-	float normal_x, normal_y;
-	float next_moving_ball_x, next_moving_ball_y;
-	float reflected_vx, reflected_vy;
+	float distance;
+	float dotProduct;
+	float length;
 
-	next_moving_ball_x = moving_ball.x + ball_velocity.x;
-	next_moving_ball_y = moving_ball.y + ball_velocity.y;
+	Point norm;	// 충돌 지점과 벽의 중심을 연결한 벡터
 
-	distance = sqrt(pow(moving_ball.x - wall_x, 2) + sqrt(pow(moving_ball.y - wall_y,2)));
+	// 공과 벽과의 거리 계산
+	distance = sqrt(pow(moving_ball.x - wall.x, 2) + sqrt(pow(moving_ball.y - wall.y,2)));
 
-	if (distance < (wall_radius + moving_ball_radius)) {
-		normal_x = moving_ball.x - wall_x;
-		normal_y = moving_ball.y - wall_y;
-		float length;
-		
-		length = sqrt(normal_x * normal_x + normal_y * normal_y);
-		if (length > 0) {
-			normal_x /= length;
-			normal_y /= length;
-		}
+	if (distance <= (wall_radius + moving_ball_radius)) {
+		// 충돌 지점과 벽 중심 사이의 법선 백터 구하기
+		norm.x = moving_ball.x - wall.x;
+		norm.y = moving_ball.y - wall.y;		
+
+		length = sqrt(pow(norm.x, 2) + pow(norm.y,2));
+
+		norm.x /= length;
+		norm.y /= length;
+
 		if (length >= wall_radius) {
-			// 반사 벡터 계산
-			dot = ball_velocity.x * normal_x + ball_velocity.y * normal_y;
+			// 충돌 지점에서의 공의 속도와 법선 벡터의 내적 계산
+			dotProduct = ball_velocity.x * norm.x + ball_velocity.y * norm.y;
 
-			// 공의 속도 업데이트
-			reflected_vx = ball_velocity.x - 2 * dot * normal_x;
-			reflected_vy = ball_velocity.y - 2 * dot * normal_y;
-
-			ball_velocity.x = reflected_vx;
-			ball_velocity.y = reflected_vy;
-
+			// 법선 방향으로 반사된 속도 계산
+			ball_velocity.x -= 2 * dotProduct * norm.x;
+			ball_velocity.y -= 2 * dotProduct * norm.y;
 		}
 	}
 }
