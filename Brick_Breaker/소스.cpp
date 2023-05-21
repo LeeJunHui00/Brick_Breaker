@@ -9,7 +9,7 @@
 #pragma warning(disable: 4996)
 
 #define	WIDTH 			1200
-#define	HEIGHT			600
+#define	HEIGHT			800
 #define	PI				3.1415
 #define	POLYGON_num		50
 
@@ -69,6 +69,9 @@ void Collision_Detection_With_Stick(void);
 // 공과 블럭의 충돌을 검사하는 함수
 void Collision_Detection_to_Brick(Block& block);
 
+// 공과 원형벽의 충돌을 검사하는 함수
+void Collision_Detection_to_Sphere_Walls(void);
+
 // 초기화 함수
 void init(void);
 
@@ -86,6 +89,9 @@ void frame_reset(void);
 
 // 텍스트 출력 함수
 void displayText(float x, float y, float r, float g, float b, const char* str);
+
+// 벽 그리는 함수
+void Modeling_Wall(void);
 
 
 void init(void) {
@@ -159,6 +165,22 @@ void Modeling_Block(const Block &block) {
 	}
 }
 
+void Modeling_Wall(void) {
+
+	float radius = 400;
+	float x = WIDTH / 2;
+	float y = HEIGHT / 2;
+
+	glBegin(GL_LINE_LOOP);
+	for (int i = 0; i < 360; i++) {
+		float theta = i * (PI / 180);
+		float cx = x + radius * cos(theta);
+		float cy = y + radius * sin(theta);
+		glVertex2f(cx, cy);
+	}
+	glEnd();
+}
+
 //void Collision_Detection_Between_Balls(void) {
 //	float	distance;
 //
@@ -178,12 +200,52 @@ void Modeling_Block(const Block &block) {
 //	}
 //}
 
+void Collision_Detection_to_Sphere_Walls(void) {
+	float wall_radius = 400;
+	float wall_x = WIDTH / 2;
+	float wall_y = HEIGHT / 2;
+	float distance, d;
+	float correction;
+	float dot;
+	float normal_x, normal_y;
+	float next_moving_ball_x, next_moving_ball_y;
+	float reflected_vx, reflected_vy;
+
+	next_moving_ball_x = moving_ball.x + ball_velocity.x;
+	next_moving_ball_y = moving_ball.y + ball_velocity.y;
+
+	distance = sqrt(pow(moving_ball.x - wall_x, 2) + sqrt(pow(moving_ball.y - wall_y,2)));
+
+	if (distance < (wall_radius + moving_ball_radius)) {
+		normal_x = moving_ball.x - wall_x;
+		normal_y = moving_ball.y - wall_y;
+		float length;
+		
+		length = sqrt(normal_x * normal_x + normal_y * normal_y);
+		if (length > 0) {
+			normal_x /= length;
+			normal_y /= length;
+		}
+		if (length >= wall_radius) {
+			// 반사 벡터 계산
+			dot = ball_velocity.x * normal_x + ball_velocity.y * normal_y;
+
+			// 공의 속도 업데이트
+			reflected_vx = ball_velocity.x - 2 * dot * normal_x;
+			reflected_vy = ball_velocity.y - 2 * dot * normal_y;
+
+			ball_velocity.x = reflected_vx;
+			ball_velocity.y = reflected_vy;
+
+		}
+	}
+}
+
 void Collision_Detection_to_Walls(void) {
 	float ball_left = moving_ball.x - moving_ball_radius;
 	float ball_right = moving_ball.x + moving_ball_radius;
 	float ball_top = moving_ball.y + moving_ball_radius;
 	float ball_bottom = moving_ball.y - moving_ball_radius;
-
 
 	if (left >= ball_left) {
 		printf("왼쪽 충돌함\n");
@@ -200,7 +262,6 @@ void Collision_Detection_to_Walls(void) {
 	else if (bottom >= ball_bottom) {
 		printf("아래 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
-
 	}
 }
 
@@ -248,8 +309,8 @@ void Collision_Detection_With_Stick(void) {
 		dotProduct = ball_velocity.x * unit_sdist.x + ball_velocity.y * unit_sdist.y;
 
 		// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
-		ball_velocity.x -= 2.0f * dotProduct * unit_sdist.x;
-		ball_velocity.y -= 2.0f * dotProduct * unit_sdist.y;
+		ball_velocity.x -= 2 * dotProduct * unit_sdist.x;
+		ball_velocity.y -= 2 * dotProduct * unit_sdist.y;
 	}
 
 }
@@ -315,7 +376,7 @@ void ball(void) {
 	for (int i = 0; i < num_blocks; i++) {
 		Collision_Detection_to_Brick(blocks[i]);
 	}
-
+	Collision_Detection_to_Sphere_Walls();
 	// 움직이는 공의 위치 변화 
 	moving_ball.x += ball_velocity.x;
 	moving_ball.y += ball_velocity.y;
@@ -354,6 +415,8 @@ void RenderScene(void) {
 	// 화면 배경색 설정
 	frame_reset();
 
+	// 벽 그리기
+	Modeling_Wall();
 
 	// 공 그리기
 	ball();
