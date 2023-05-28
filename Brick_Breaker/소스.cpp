@@ -25,7 +25,7 @@ const int	num_blocks = 8;				// 블럭 개수 설정
 
 float	block_radius = 100;
 float	block_rotation = 0.0;
-float	block_rotation_speed = 0.03;
+float	block_rotation_speed = 0.02;
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -170,7 +170,7 @@ void	Modeling_Circle(float radius, Point CC) {
 }
 
 void Modeling_Stick(void) {
-	glColor3f(0.6, 0.6, 0.6);
+	glColor3f(0.0, 0.6, 0.6);
 	glBegin(GL_POLYGON);
 	glVertex2f(stick_x, stick_y);
 	glVertex2f(stick_x + 95.0, stick_y);
