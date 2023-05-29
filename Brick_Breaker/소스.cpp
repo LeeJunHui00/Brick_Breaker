@@ -27,6 +27,9 @@ float	block_radius = 100;
 float	block_rotation = 0.0;
 float	block_rotation_speed = 0.02;
 
+float	stick_radius = 300;
+float	stick_rotation = 0.0;
+
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
 	float	x;
@@ -104,11 +107,14 @@ void draw_blocks_with_circular_motion(void);
 
 void ball(void);
 
+// 원운동 하는 스틱 그리는 함수
+void draw_stick_with_circular_motion(void);
+
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
 	moving_ball.x = WIDTH / 2;
-	moving_ball.y = HEIGHT / 2+100;
+	moving_ball.y = HEIGHT / 2 -300;
 
 	ball_velocity.x = 0.3;
 	ball_velocity.y = 0.3;
@@ -117,8 +123,8 @@ void init(void) {
 	//stick_x = WIDTH / 2 - 95.0 / 2;
 	//stick_y = 10.0;
 
-	stick_x = WIDTH / 2;
-	stick_y = HEIGHT /2;
+	//stick_x = WIDTH / 2;
+	//stick_y = HEIGHT /2;
 
 
 	// 벽 초기 위치
@@ -128,6 +134,10 @@ void init(void) {
 	
 	// 블럭 회전
 	block_rotation += block_rotation_speed;
+
+	// 스틱 회전
+	//stick_roation += 0.02;
+
 
 }
 
@@ -172,10 +182,19 @@ void	Modeling_Circle(float radius, Point CC) {
 void Modeling_Stick(void) {
 	glColor3f(0.0, 0.6, 0.6);
 	glBegin(GL_POLYGON);
+	// 가로
+	//glVertex2f(stick_x, stick_y);
+	//glVertex2f(stick_x + 95.0, stick_y);
+	//glVertex2f(stick_x + 95.0, stick_y + 25.0);
+	//glVertex2f(stick_x, stick_y + 25.0);
+
+	// 세로
 	glVertex2f(stick_x, stick_y);
-	glVertex2f(stick_x + 95.0, stick_y);
-	glVertex2f(stick_x + 95.0, stick_y + 25.0);
-	glVertex2f(stick_x, stick_y + 25.0);
+	glVertex2f(stick_x + 25.0, stick_y);
+	glVertex2f(stick_x + 25.0, stick_y + 95.0);
+	glVertex2f(stick_x, stick_y + 95.0);
+
+	
 	glEnd();
 }
 
@@ -197,7 +216,9 @@ void Modeling_Wall(void) {
 	float x = WIDTH / 2;
 	float y = HEIGHT / 2;
 
-	glBegin(GL_LINE_LOOP);
+	glColor3f(1, 1, 1);
+	//glBegin(GL_LINE_LOOP);
+	glBegin(GL_POLYGON);
 	for (int i = 0; i < 360; i++) {
 		float theta = i * (PI / 180);
 		float cx = x + radius * cos(theta);
@@ -245,19 +266,19 @@ void Collision_Detection_to_Walls(void) {
 	float ball_bottom = moving_ball.y - moving_ball_radius;
 
 	if (left >= ball_left) {
-		printf("왼쪽 충돌함\n");
+		//printf("왼쪽 충돌함\n");
 		ball_velocity.x = ball_velocity.x * -1;
 	}
 	else if (WIDTH <= ball_right) {
-		printf("오른쪽 충돌함\n");
+		//printf("오른쪽 충돌함\n");
 		ball_velocity.x = ball_velocity.x * -1;
 	}
 	else if (HEIGHT <= ball_top) {
-		printf("위 충돌함\n");
+		//printf("위 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
 	}
 	else if (bottom >= ball_bottom) {
-		printf("아래 충돌함\n");
+		//printf("아래 충돌함\n");
 		ball_velocity.y = ball_velocity.y * -1;
 	}
 }
@@ -268,48 +289,62 @@ void Collision_Detection_With_Stick(void) {
 	//	printf("스틱에 충돌함\n");
 	//	ball_velocity.y = ball_velocity.y * -1;
 	//}
+
+	// -------- 안 돌아가는 스틱 -----
+	//float dotProduct, norm;
+
+	//stick_center.x = stick_x + 95 / 2;
+	//stick_center.y = stick_y + 25 / 2;
+
+	//closet_stick.x = moving_ball.x;
+	//closet_stick.y = moving_ball.y;
+
+	//// 가장 가까운 위치
+	//if (moving_ball.x < stick_x) {
+	//	closet_stick.x = stick_x;
+	//}
+	//else if (moving_ball.x > stick_x + 95) {
+	//	closet_stick.x = stick_x + 95;
+	//}
+	//if (moving_ball.y < stick_y) {
+	//	closet_stick.y = stick_y;
+	//}
+	//else if (moving_ball.y > stick_y + 25) {
+	//	closet_stick.y = stick_y + 25;
+	//}
+
+	//sdist.x = moving_ball.x - closet_stick.x;
+	//sdist.y = moving_ball.y - closet_stick.y;
+
+	//// 거리 백터의 크기 계산
+	//norm = sqrt(pow(sdist.x, 2) + pow(sdist.y, 2));
+
+	////공과 블럭이 충돌 했는지 확인
+	//if (norm < (moving_ball_radius + fmin(95 / 2, 25 / 2))) {
+	//	// 법선 백터 계산
+	//	unit_sdist.x = sdist.x / norm;
+	//	unit_sdist.y = sdist.y / norm;
+
+	//	// 공 속도 백터와 법선 백터의 내적 계산
+	//	dotProduct = ball_velocity.x * unit_sdist.x + ball_velocity.y * unit_sdist.y;
+
+	//	// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+	//	ball_velocity.x -= 2 * dotProduct * unit_sdist.x;
+	//	ball_velocity.y -= 2 * dotProduct * unit_sdist.y;
+	//}
+
+	// -------- 안 돌아가는 스틱 -----
+
+	Point rotated_stick;
+	Point dist, unit_dist;
+
 	float dotProduct, norm;
+	float distance_from_center = 350;
 
-	stick_center.x = stick_x + 95 / 2;
-	stick_center.y = stick_y + 25 / 2;
-
-	closet_stick.x = moving_ball.x;
-	closet_stick.y = moving_ball.y;
-
-	// 가장 가까운 위치
-	if (moving_ball.x < stick_x) {
-		closet_stick.x = stick_x;
-	}
-	else if (moving_ball.x > stick_x + 95) {
-		closet_stick.x = stick_x + 95;
-	}
-	if (moving_ball.y < stick_y) {
-		closet_stick.y = stick_y;
-	}
-	else if (moving_ball.y > stick_y + 25) {
-		closet_stick.y = stick_y + 25;
-	}
-
-	sdist.x = moving_ball.x - closet_stick.x;
-	sdist.y = moving_ball.y - closet_stick.y;
-
-	// 거리 백터의 크기 계산
-	norm = sqrt(pow(sdist.x, 2) + pow(sdist.y, 2));
-
-	//공과 블럭이 충돌 했는지 확인
-	if (norm < (moving_ball_radius + fmin(95 / 2, 25 / 2))) {
-		// 법선 백터 계산
-		unit_sdist.x = sdist.x / norm;
-		unit_sdist.y = sdist.y / norm;
-
-		// 공 속도 백터와 법선 백터의 내적 계산
-		dotProduct = ball_velocity.x * unit_sdist.x + ball_velocity.y * unit_sdist.y;
-
-		// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
-		ball_velocity.x -= 2 * dotProduct * unit_sdist.x;
-		ball_velocity.y -= 2 * dotProduct * unit_sdist.y;
-	}
-
+	rotated_stick.x = wall.x + distance_from_center * cos(stick_rotation * PI / 180);
+	rotated_stick.y = wall.y + distance_from_center * sin(stick_rotation * PI / 180);
+	
+	printf("%f\n", rotated_stick.x);
 }
 
 void Collision_Detection_to_Brick(Block& block) {
@@ -318,12 +353,12 @@ void Collision_Detection_to_Brick(Block& block) {
 		Point dist, unit_dist;
 
 		float dotProduct, norm;
-		float distance_from_center = 300;
+		float distance_from_center = 100;
 
 		int block_num = &block - blocks;  // 현재 블록 번호 계산
 		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
 
-
+		// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
 		rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
 		rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
 
@@ -335,16 +370,19 @@ void Collision_Detection_to_Brick(Block& block) {
 		closet_block.x = moving_ball.x;
 		closet_block.y = moving_ball.y;
 
-		// 가장 가까운 위치
+		// 공의 x 좌표가 블록의 왼쪽 경계보다 작은 경우 가장 가까운 위치를 왼쪽 경계로 설정한다.
 		if (moving_ball.x < rotated_block.x) {
 			closet_block.x = rotated_block.x;
 		}
+		// 공의 x 좌표가 블록의 오른쪽 경계보다 큰 경우 가장 가까운 위치를 오른쪽 경계로 설정한다.
 		else if (moving_ball.x > rotated_block.x + block.width) {
 			closet_block.x = rotated_block.x + block.width;
 		}
+		// 공의 y 좌표가 블록의 위쪽 경계보다 작은 경우 가장 가까운 위치를 위쪽 경계로 설정한다.
 		if (moving_ball.y < rotated_block.y) {
 			closet_block.y = rotated_block.y;
 		}
+		// 공의 y 좌표가 블록의 아래쪽 경계보다 큰 경우 가장 가까운 위치를 아래쪽 경계로 설정한다.
 		else if (moving_ball.y > rotated_block.y + block.height) {
 			closet_block.y = rotated_block.y + block.height;
 		}
@@ -354,31 +392,6 @@ void Collision_Detection_to_Brick(Block& block) {
 		dist.y = moving_ball.y - closet_block.y;
 
 		//printf("%f\n", rotated_block.x);
-
-		//closet_block.x = moving_ball.x;
-		//closet_block.y = moving_ball.y;
-
-		//// 블럭의 중심 좌표 가져옴
-		//brick_center.x = block.x + block.width / 2;
-		//brick_center.y = block.y + block.height / 2;
-
-		//// 가장 가까운 위치
-		//if (moving_ball.x < block.x) {
-		//	closet_block.x = block.x;
-		//}
-		//else if (moving_ball.x > block.x + block.width) {
-		//	closet_block.x = block.x + block.width;
-		//}
-		//if (moving_ball.y < block.y) {
-		//	closet_block.y = block.y;
-		//}
-		//else if (moving_ball.y > block.y + block.height) {
-		//	closet_block.y = block.y + block.height;
-		//}
-
-		//// 공과 블록 중심 사이의 거리 백터 계산
-		//dist.x = moving_ball.x - closet_block.x;
-		//dist.y = moving_ball.y - closet_block.y;
 
 		// 거리 백터의 크기 계산
 		norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
@@ -402,7 +415,7 @@ void Collision_Detection_to_Brick(Block& block) {
 }
 
 void frame_reset(void) {
-	glClearColor(1.0, 1.0, 0.0, 0.0); // Set display-window color to Yellow
+	glClearColor(0.0, 0.0, 0.0, 0.0); // 검은색 배경
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
@@ -419,7 +432,7 @@ void ball(void) {
 	moving_ball.y += ball_velocity.y;
 
 	// 움직이는 공 그리기 
-	glColor3f(0.0, 0.0, 1.0);
+	glColor3f(1.0, 0.0, 0.0);
 	Modeling_Circle(moving_ball_radius, moving_ball);
 }
 
@@ -438,7 +451,7 @@ void draw_blocks_with_circular_motion(void) {
 		glRotatef(block_rotation + (i * 360.0f / num_blocks), 0.0f, 0.0f, 1.0f);
 
 		// 원의 경계선까지 이동
-		glTranslatef(300, 0.0f, 0.0f);
+		glTranslatef(100, 0.0f, 0.0f);
 
 		// 블록 그리기
 		Modeling_Block(blocks[i]);
@@ -446,6 +459,22 @@ void draw_blocks_with_circular_motion(void) {
 
 	}
 }
+
+void draw_stick_with_circular_motion(void) {
+
+	//stick_roation -= 0.02;
+
+	glPushMatrix();
+
+	glTranslatef(WIDTH / 2, HEIGHT / 2, 0.0f);
+	glRotatef(stick_rotation + 360.0f, 0.0f, 0.0f, 1.0f);
+	glTranslatef(350, 0.0f, 0.0f);
+	Modeling_Stick();
+
+	glPopMatrix();
+
+}
+
 
 void displayText(float x, float y, float r, float g, float b, const char* str) {
 	glColor3f(r, g, b);
@@ -461,10 +490,12 @@ void MySpecial(int key, int x, int y) {
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		stick_x -= stick_velocity;
+		//stick_x -= stick_velocity;
+		stick_rotation -= 2;
 		break;
 	case GLUT_KEY_RIGHT:
-		stick_x += stick_velocity;
+		//stick_x += stick_velocity;
+		stick_rotation += 2;
 		break;
 	default:
 		break;
@@ -483,7 +514,7 @@ void RenderScene(void) {
 	ball();
 
 	// 스틱 그리기
-	Modeling_Stick();
+	//Modeling_Stick();
 
 	// 블럭 그리기
 	//for (int i = 0; i < num_blocks; i++) {
@@ -492,7 +523,7 @@ void RenderScene(void) {
 
 	draw_blocks_with_circular_motion();
 
-
+	draw_stick_with_circular_motion();
 
 	// 글씨 출력해보기
 	char formattedText_x[255];
@@ -501,8 +532,8 @@ void RenderScene(void) {
 	sprintf(formattedText_x, "x speed : %f", ball_velocity.x);
 	sprintf(formattedText_y, "y speed : %f", ball_velocity.y);
 
-	displayText(0.0f, 13.0f, 0.0f, 0.0f, 0.0f, formattedText_x);
-	displayText(0.0f, 3.0f, 0.0f, 0.0f, 0.0f, formattedText_y);
+	displayText(0.0f, 13.0f, 1.0f, 1.0f, 1.0f, formattedText_x);
+	displayText(0.0f, 3.0f, 1.0f, 1.0f, 1.0f, formattedText_y);
 	//
 
 	glutSwapBuffers();
