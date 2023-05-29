@@ -18,7 +18,7 @@ int		bottom = 0;
 
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 float	wall_radius;
-float	stick_x, stick_y;				// 스틱의 가로,세로
+//float	stick_x, stick_y;				// 스틱의 가로,세로
 float	stick_velocity = 20;			// 스틱 움직이는 속도
 
 const int	num_blocks = 8;				// 블럭 개수 설정
@@ -58,6 +58,8 @@ Point	closet_block, closet_stick;
 Point	wall;
 Block	blocks[num_blocks];
 POSITION pos_stick, pos_ball;
+
+Block	stick;
 
 
 // 공을 그리는 함수
@@ -138,7 +140,8 @@ void init(void) {
 	// 스틱 회전
 	//stick_roation += 0.02;
 
-
+	stick.width = 25.0;
+	stick.height = 95.0;
 }
 
 
@@ -189,10 +192,10 @@ void Modeling_Stick(void) {
 	//glVertex2f(stick_x, stick_y + 25.0);
 
 	// 세로
-	glVertex2f(stick_x, stick_y);
-	glVertex2f(stick_x + 25.0, stick_y);
-	glVertex2f(stick_x + 25.0, stick_y + 95.0);
-	glVertex2f(stick_x, stick_y + 95.0);
+	glVertex2f(stick.x, stick.y);
+	glVertex2f(stick.x + stick.width, stick.y);
+	glVertex2f(stick.x + stick.width, stick.y + stick.height);
+	glVertex2f(stick.x, stick.y + stick.height);
 
 	
 	glEnd();
@@ -336,6 +339,7 @@ void Collision_Detection_With_Stick(void) {
 	// -------- 안 돌아가는 스틱 -----
 
 	Point rotated_stick;
+	Point stick_center, closet_stick;
 	Point dist, unit_dist;
 
 	float dotProduct, norm;
@@ -344,7 +348,44 @@ void Collision_Detection_With_Stick(void) {
 	rotated_stick.x = wall.x + distance_from_center * cos(stick_rotation * PI / 180);
 	rotated_stick.y = wall.y + distance_from_center * sin(stick_rotation * PI / 180);
 	
-	printf("%f\n", rotated_stick.x);
+	//printf("%f\n", rotated_stick.x);
+	stick_center.x = rotated_stick.x + stick.width / 2;
+	stick_center.y = rotated_stick.y + stick.height / 2;
+
+	closet_stick.x = moving_ball.x;
+	closet_stick.y = moving_ball.y;
+
+	if (moving_ball.x < rotated_stick.x) {
+		closet_stick.x = rotated_stick.x;
+	}
+	else if (moving_ball.x > rotated_stick.x + stick.width) {
+		closet_stick.x = rotated_stick.x + stick.width;
+	}
+	if (moving_ball.y < rotated_stick.y) {
+		closet_stick.y = rotated_stick.y;
+	}
+	else if (moving_ball.y > rotated_stick.y + stick.height) {
+		closet_stick.y = rotated_stick.y + stick.height;
+	}
+
+	dist.x = moving_ball.x - closet_stick.x;
+	dist.y = moving_ball.y - closet_stick.y;
+
+	// 거리 벡터의 크기(길이)를 계산한다. 거리 계산을 위해 제곱근 함수를 사용한다.
+	norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+
+	if (norm < (moving_ball_radius)) {
+		// 충돌이 발생한 경우, 법선 벡터(단위 거리 벡터)를 계산한다.
+		unit_dist.x = dist.x / norm;
+		unit_dist.y = dist.y / norm;
+
+		// 공 속도 벡터와 법선 벡터의 내적을 계산한다. 
+		dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
+
+		// 법선 벡터와 관련된 내적 값을 이용하여 공의 속도 벡터를 업데이트한다.   
+		ball_velocity.x -= 2 * dotProduct * unit_dist.x;
+		ball_velocity.y -= 2 * dotProduct * unit_dist.y;
+	}
 }
 
 void Collision_Detection_to_Brick(Block& block) {
