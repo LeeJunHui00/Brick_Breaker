@@ -119,7 +119,7 @@ void init(void) {
 	moving_ball.y = HEIGHT / 2 -300;
 
 	ball_velocity.x = 0.3;
-	ball_velocity.y = 0.3;
+	ball_velocity.y = 0.5;
 
 	// 스틱 초기위치 
 	//stick_x = WIDTH / 2 - 95.0 / 2;
@@ -142,13 +142,16 @@ void init(void) {
 
 	stick.width = 25.0;
 	stick.height = 95.0;
+
 }
 
 
 void init_blocks(void) {
 	float	block_width		= 60;
 	float	block_height	= 30;
-	
+	float	distance_from_center = 100;
+	float	block_angle;
+
 	for (int i = 0; i < num_blocks; i++) {
 		//blocks[i].x = 200 + i * (block_width + 50);
 		//blocks[i].y = 500;
@@ -156,10 +159,24 @@ void init_blocks(void) {
 		//blocks[i].x = 200;
 		//blocks[i].y = 200;
 
+
+		// test
+		//block_angle = block_rotation + (i * (360.0f / num_blocks));  // 블록 회전 각도 계산
+
+		//blocks[i].x = wall.x + distance_from_center * cos(block_angle * PI / 180);
+		//blocks[i].y = wall.y + distance_from_center * sin(block_angle * PI / 180);
+
 		blocks[i].width = block_width;
 		blocks[i].height = block_height;
 		blocks[i].visible = true;
 	}
+
+	//int block_num = &block - blocks;  // 현재 블록 번호 계산
+	//float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
+
+	//// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
+	//rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
+	//rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
 }
 
 
@@ -239,7 +256,8 @@ void Collision_Detection_to_Sphere_Walls(void) {
 	Point norm;	// 충돌 지점과 벽의 중심을 연결한 벡터
 
 	// 공과 벽과의 거리 계산
-	distance = sqrt(pow(moving_ball.x - wall.x, 2) + sqrt(pow(moving_ball.y - wall.y,2)));
+	//distance = sqrt(pow(moving_ball.x - wall.x, 2) + sqrt(pow(moving_ball.y - wall.y,2)));
+	distance = sqrt(pow(moving_ball.x - wall.x, 2) + pow(moving_ball.y - wall.y, 2));
 
 	if (distance <= (wall_radius + moving_ball_radius)) {
 		// 충돌 지점과 벽 중심 사이의 법선 백터 구하기
@@ -388,72 +406,248 @@ void Collision_Detection_With_Stick(void) {
 	}
 }
 
+//void Collision_Detection_to_Brick(Block& block) {
+//	if (block.visible) {
+//		Point rotated_block;
+//		Point dist, unit_dist;
+//
+//		float dotProduct, norm;
+//		float distance_from_center = 100;
+//
+//		int block_num = &block - blocks;  // 현재 블록 번호 계산
+//		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
+//
+//		// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
+//		rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
+//		rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
+//
+//
+//
+//		// 블럭의 중심 좌표 가져옴
+//		//brick_center.x = rotated_block.x + block.width / 2;
+//		//brick_center.y = rotated_block.y + block.height / 2;
+//		//printf("%d 의 x 위치 : %f, y 위치 : %f\n", block_num, rotated_block.x, rotated_block.y);
+//
+//
+//		closet_block.x = moving_ball.x;
+//		closet_block.y = moving_ball.y;
+//
+//		// 공의 x 좌표가 블록의 왼쪽 경계보다 작은 경우 가장 가까운 위치를 왼쪽 경계로 설정한다.
+//		if (moving_ball.x < rotated_block.x) {
+//			closet_block.x = rotated_block.x;
+//		}
+//		// 공의 x 좌표가 블록의 오른쪽 경계보다 큰 경우 가장 가까운 위치를 오른쪽 경계로 설정한다.
+//		else if (moving_ball.x > rotated_block.x + block.width) {
+//			closet_block.x = rotated_block.x + block.width;
+//		}
+//		// 공의 y 좌표가 블록의 위쪽 경계보다 작은 경우 가장 가까운 위치를 위쪽 경계로 설정한다.
+//		if (moving_ball.y < rotated_block.y) {
+//			closet_block.y = rotated_block.y;
+//		}
+//		// 공의 y 좌표가 블록의 아래쪽 경계보다 큰 경우 가장 가까운 위치를 아래쪽 경계로 설정한다.
+//		else if (moving_ball.y > rotated_block.y + block.height) {
+//			closet_block.y = rotated_block.y + block.height;
+//		}
+//
+//		// 공과 블록 중심 사이의 거리 백터 계산
+//		dist.x = moving_ball.x - closet_block.x;
+//		dist.y = moving_ball.y - closet_block.y;
+//
+//
+//		// 거리 백터의 크기 계산
+//		norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+//
+//		//공과 블럭이 충돌 했는지 확인
+//		if (norm < (moving_ball_radius)) {
+//			// 법선 백터 계산
+//			unit_dist.x = dist.x / norm;
+//			unit_dist.y = dist.y / norm;
+//
+//			// 공 속도 백터와 법선 백터의 내적 계산
+//			dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
+//
+//			// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+//			ball_velocity.x -= 2 * dotProduct * unit_dist.x;
+//			ball_velocity.y -= 2 * dotProduct * unit_dist.y;
+//			printf("블록과 충돌함\n");
+//			block.visible = false;
+//		}
+//	}
+//}
+
+//void Collision_Detection_to_Brick(Block& block) {
+//	if (block.visible) {
+//		Point rotated_block;
+//		Point dist, unit_dist;
+//		Point local_ball, rotated_ball;
+//
+//		float dotProduct, norm;
+//		float distance_from_center = 100;
+//
+//		int block_num = &block - blocks;  // 현재 블록 번호 계산
+//		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
+//
+//		// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
+//		rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
+//		rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
+//
+//		// 블럭의 중심 좌표 가져옴
+//		//brick_center.x = rotated_block.x + block.width / 2;
+//		//brick_center.y = rotated_block.y + block.height / 2;
+//		//printf("%d 의 x 위치 : %f, y 위치 : %f\n", block_num, rotated_block.x, rotated_block.y);
+//		        // 공의 로컬 좌표 계산
+//        local_ball.x = moving_ball.x - rotated_block.x;
+//        local_ball.y = moving_ball.y - rotated_block.y;
+//
+//		// 회전 각도 계산
+//		float radian_angle = -(block_angle * PI / 180);
+//
+//		// 공을 회전시키고 변환된 좌표 구하기
+//		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
+//		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle);
+//
+//
+//		// 충돌 감지 체계 변경 및 회전된 공의 좌표 사용
+//		closet_block.x = rotated_block.x + (rotated_ball.x > block.width ? block.width : (rotated_ball.x < 0 ? 0 : rotated_ball.x));
+//		closet_block.y = rotated_block.y + (rotated_ball.y > block.height ? block.height : (rotated_ball.y < 0 ? 0 : rotated_ball.y));
+//
+//		// 공과 블록 중심 사이의 거리 백터 계산
+//		dist.x = moving_ball.x - closet_block.x;
+//		dist.y = moving_ball.y - closet_block.y;
+//
+//
+//		// 거리 백터의 크기 계산
+//		norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+//
+//		//공과 블럭이 충돌 했는지 확인
+//		if (norm < (moving_ball_radius)) {
+//			// 법선 백터 계산
+//			unit_dist.x = dist.x / norm;
+//			unit_dist.y = dist.y / norm;
+//
+//			// 공 속도 백터와 법선 백터의 내적 계산
+//			dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
+//
+//			// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
+//			ball_velocity.x -= 2 * dotProduct * unit_dist.x;
+//			ball_velocity.y -= 2 * dotProduct * unit_dist.y;
+//			printf("블록과 충돌함\n");
+//			block.visible = false;
+//		}
+//	}
+//}
+
+// 반틈 성공?
+//void Collision_Detection_to_Brick(Block& block) {
+//	if (block.visible) {
+//		Point rotated_block;
+//		Point local_ball, rotated_ball;
+//		Point dist, unit_dist;
+//
+//		float dotProduct, norm;
+//		float distance_from_center = 100;
+//
+//		int block_num = &block - blocks;
+//		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));
+//
+//		// 회전된 블록 좌표 계산
+//		rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
+//		rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
+//
+//		// 공의 로컬 좌표 계산
+//		local_ball.x = moving_ball.x - rotated_block.x;
+//		local_ball.y = moving_ball.y - rotated_block.y;
+//
+//		// 회전 각도 계산
+//		float radian_angle = -(block_angle * PI / 180);
+//
+//		// 공을 회전시키고 변환된 좌 구하기
+//		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
+//		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle);
+//
+//		// 충돌이 블록 내에서 발생하는지 확인 및 처리
+//		if (rotated_ball.x >= 0 && rotated_ball.x <= block.width && rotated_ball.y >= 0 && rotated_ball.y <= block.height) {
+//
+//			// 충돌 거리 계산
+//			dist.x = moving_ball.x - rotated_block.x;
+//			dist.y = moving_ball.y - rotated_block.y;
+//
+//			// 백터 크기 계산
+//			norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+//
+//			unit_dist.x = dist.x / norm;
+//			unit_dist.y = dist.y / norm;
+//
+//			// 내적 계산
+//			dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
+//
+//			// 법선 백터를 사용하여 공의 속도 업데이트
+//			ball_velocity.x -= 2 * dotProduct * unit_dist.x;
+//			ball_velocity.y -= 2 * dotProduct * unit_dist.y;
+//
+//			printf("블록과 충돌함\n");
+//			block.visible = false;
+//		}
+//	}
+//}
+
+// 성공
 void Collision_Detection_to_Brick(Block& block) {
 	if (block.visible) {
 		Point rotated_block;
+		Point local_ball, rotated_ball;
 		Point dist, unit_dist;
 
 		float dotProduct, norm;
 		float distance_from_center = 100;
 
-		int block_num = &block - blocks;  // 현재 블록 번호 계산
-		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
+		int block_num = &block - blocks;
+		float block_angle = block_rotation + (block_num * (360.0f / num_blocks));
 
-		// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
+		// 회전된 블록 좌표 계산
 		rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
 		rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
 
-		// 블럭의 중심 좌표 가져옴
-		brick_center.x = rotated_block.x + block.width / 2;
-		brick_center.y = rotated_block.y + block.height / 2;
-		//printf("%d 의 x 위치 : %f, y 위치 : %f\n", block_num, rotated_block.x, rotated_block.y);
+		// 공의 로컬 좌표 계산
+		local_ball.x = moving_ball.x - rotated_block.x;
+		local_ball.y = moving_ball.y - rotated_block.y;
 
-		closet_block.x = moving_ball.x;
-		closet_block.y = moving_ball.y;
+		// 회전 각도 계산
+		float radian_angle = -(block_angle * PI / 180);
 
-		// 공의 x 좌표가 블록의 왼쪽 경계보다 작은 경우 가장 가까운 위치를 왼쪽 경계로 설정한다.
-		if (moving_ball.x < rotated_block.x) {
-			closet_block.x = rotated_block.x;
-		}
-		// 공의 x 좌표가 블록의 오른쪽 경계보다 큰 경우 가장 가까운 위치를 오른쪽 경계로 설정한다.
-		else if (moving_ball.x > rotated_block.x + block.width) {
-			closet_block.x = rotated_block.x + block.width;
-		}
-		// 공의 y 좌표가 블록의 위쪽 경계보다 작은 경우 가장 가까운 위치를 위쪽 경계로 설정한다.
-		if (moving_ball.y < rotated_block.y) {
-			closet_block.y = rotated_block.y;
-		}
-		// 공의 y 좌표가 블록의 아래쪽 경계보다 큰 경우 가장 가까운 위치를 아래쪽 경계로 설정한다.
-		else if (moving_ball.y > rotated_block.y + block.height) {
-			closet_block.y = rotated_block.y + block.height;
-		}
+		// 공을 회전시키고 변환된 좌 구하기
+		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
+		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle);
 
-		// 공과 블록 중심 사이의 거리 백터 계산
-		dist.x = moving_ball.x - closet_block.x;
-		dist.y = moving_ball.y - closet_block.y;
+		// 충돌이 블록 내에서 발생하는지 확인 및 처리
+		if (rotated_ball.x >= 0 && rotated_ball.x <= block.width && rotated_ball.y >= 0 && rotated_ball.y <= block.height) {
+			float overlap_x = (block.width / 2 + moving_ball_radius) - fabs(rotated_ball.x - block.width / 2);
+			float overlap_y = (block.height / 2 + moving_ball_radius) - fabs(rotated_ball.y - block.height / 2);
 
-		//printf("%f\n", rotated_block.x);
+			// 로컬 벡터를 회전시키기 전에 업데이트
+			Point rotated_velocity;
+			rotated_velocity.x = ball_velocity.x * cos(radian_angle) - ball_velocity.y * sin(radian_angle);
+			rotated_velocity.y = ball_velocity.x * sin(radian_angle) + ball_velocity.y * cos(radian_angle);
 
-		// 거리 백터의 크기 계산
-		norm = sqrt(pow(dist.x, 2) + pow(dist.y, 2));
+			// 충돌이 일어난 축에 따라 속도를 음수로 바꾸어 공을 반사시키도록 합니다
+			if (overlap_x >= overlap_y) {
+				rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
+			}
+			else {
+				rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
+			}
 
-		//공과 블럭이 충돌 했는지 확인
-		if (norm < (moving_ball_radius)) {
-			// 법선 백터 계산
-			unit_dist.x = dist.x / norm;
-			unit_dist.y = dist.y / norm;
+			// 공의 속도 회전 원래 축으로 되돌리기
+			ball_velocity.x = rotated_velocity.x * cos(-radian_angle) - rotated_velocity.y * sin(-radian_angle);
+			ball_velocity.y = rotated_velocity.x * sin(-radian_angle) + rotated_velocity.y * cos(-radian_angle);
 
-			// 공 속도 백터와 법선 백터의 내적 계산
-			dotProduct = ball_velocity.x * unit_dist.x + ball_velocity.y * unit_dist.y;
-
-			// 법선 백터를 사용하여 공의 속도 백터 -> 반사 백터
-			ball_velocity.x -= 2 * dotProduct * unit_dist.x;
-			ball_velocity.y -= 2 * dotProduct * unit_dist.y;
 			printf("블록과 충돌함\n");
 			block.visible = false;
 		}
+
 	}
 }
+
 
 void frame_reset(void) {
 	glClearColor(0.0, 0.0, 0.0, 0.0); // 검은색 배경
