@@ -21,7 +21,8 @@ float	wall_radius;
 //float	stick_x, stick_y;				// 스틱의 가로,세로
 float	stick_velocity = 20;			// 스틱 움직이는 속도
 
-const int	num_blocks = 8;				// 블럭 개수 설정
+const int	num_blocks = 8;				// 움직이는 블럭 개수 설정
+const int	num_fixed_blocks = 24;		// 고정된 블럭 개수 설정
 
 float	block_radius = 100;
 float	block_rotation = 0.0;
@@ -56,7 +57,7 @@ Point	brick_center, stick_center;
 Point	sdist, unit_sdist;
 Point	closet_block, closet_stick;
 Point	wall;
-Block	blocks[num_blocks];
+Block	blocks[num_blocks], fixed_blocks[num_fixed_blocks];
 POSITION pos_stick, pos_ball;
 
 Block	stick;
@@ -107,10 +108,23 @@ void Modeling_Wall(void);
 // 원운동 하는 블럭 그리는 함수
 void draw_blocks_with_circular_motion(void);
 
+// 공 그리기
 void ball(void);
 
 // 원운동 하는 스틱 그리는 함수
 void draw_stick_with_circular_motion(void);
+
+// 고정된 블럭 생성 및 초기화 함수
+void init_Fixed_blocks(void);
+
+// 고정된 블럭 그리는 함수
+void Modeling_Fixed_blocks(const Block& fixed_block);
+
+// 고정된 블럭 반복 함수
+void draw_blocks_with_fixed(void);
+
+// 고정된 블럭 충돌 체크 함수
+void Collision_Detection_to_Fixed_Brick(const Block& fixed_block);
 
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
@@ -121,14 +135,6 @@ void init(void) {
 	ball_velocity.x = 0.3;
 	ball_velocity.y = 0.5;
 
-	// 스틱 초기위치 
-	//stick_x = WIDTH / 2 - 95.0 / 2;
-	//stick_y = 10.0;
-
-	//stick_x = WIDTH / 2;
-	//stick_y = HEIGHT /2;
-
-
 	// 벽 초기 위치
 	wall_radius = 400;
 	wall.x = WIDTH / 2;
@@ -136,9 +142,6 @@ void init(void) {
 	
 	// 블럭 회전
 	block_rotation += block_rotation_speed;
-
-	// 스틱 회전
-	//stick_roation += 0.02;
 
 	stick.width = 25.0;
 	stick.height = 95.0;
@@ -158,25 +161,10 @@ void init_blocks(void) {
 
 		//blocks[i].x = 200;
 		//blocks[i].y = 200;
-
-
-		// test
-		//block_angle = block_rotation + (i * (360.0f / num_blocks));  // 블록 회전 각도 계산
-
-		//blocks[i].x = wall.x + distance_from_center * cos(block_angle * PI / 180);
-		//blocks[i].y = wall.y + distance_from_center * sin(block_angle * PI / 180);
-
 		blocks[i].width = block_width;
 		blocks[i].height = block_height;
 		blocks[i].visible = true;
 	}
-
-	//int block_num = &block - blocks;  // 현재 블록 번호 계산
-	//float block_angle = block_rotation + (block_num * (360.0f / num_blocks));  // 블록 회전 각도 계산
-
-	//// 회전한 블록의 좌표를 계산한다. 중심으로부터 일정한 거리에 블록이 위치한다.
-	//rotated_block.x = wall.x + distance_from_center * cos(block_angle * PI / 180);
-	//rotated_block.y = wall.y + distance_from_center * sin(block_angle * PI / 180);
 }
 
 
@@ -214,8 +202,61 @@ void Modeling_Stick(void) {
 	glVertex2f(stick.x + stick.width, stick.y + stick.height);
 	glVertex2f(stick.x, stick.y + stick.height);
 
-	
 	glEnd();
+}
+
+void init_Fixed_blocks(void) {
+	float fixed_block_width = 60;
+	float fixed_block_height = 30;
+	
+	//for (int i = 0; i < num_fixed_blocks; i++) {
+	//	
+	//	fixed_blocks[i].x = 400 + i * (fixed_block_width + 50);
+	//	fixed_blocks[i].y = 700;
+	//	fixed_blocks[i].width = fixed_block_width;
+	//	fixed_blocks[i].height = fixed_block_height;
+	//	fixed_blocks[i].visible = true;
+	//}
+	int rows = 5;
+	int index = 0;
+
+	for (int row = 0; row < rows; row++) {
+		int numBlocksInRow = row + 1;
+		float y = 800 - row * (fixed_block_height + 15);
+		float margin_x = (WIDTH - numBlocksInRow * (fixed_block_width + 70)) / 2;
+		for (int j = 0; j < numBlocksInRow; j++) {
+			fixed_blocks[index].x = 35 + margin_x + j * (fixed_block_width + 70);
+			fixed_blocks[index].y = y;
+
+			fixed_blocks[index].width = fixed_block_width;
+			fixed_blocks[index].height = fixed_block_height;
+			fixed_blocks[index].visible = true;
+
+			index++;
+		}
+	}
+
+}
+
+void draw_blocks_with_fixed(void) {
+
+	for (int i = 0; i < num_fixed_blocks; i++) {
+		//glPushMatrix();
+		Modeling_Fixed_blocks(fixed_blocks[i]);
+		//glPopMatrix();
+	}
+}
+
+void Modeling_Fixed_blocks(const Block &fixed_block) {
+	if (fixed_block.visible) {
+		glColor3f(0.5, 0.5, 0.5);
+		glBegin(GL_POLYGON);
+		glVertex2f(fixed_block.x , fixed_block.y);
+		glVertex2f(fixed_block.x + fixed_block.width, fixed_block.y);
+		glVertex2f(fixed_block.x + fixed_block.width, fixed_block.y + fixed_block.height);
+		glVertex2f(fixed_block.x, fixed_block.y + fixed_block.height);
+		glEnd();
+	}
 }
 
 void Modeling_Block(const Block &block) {
@@ -231,7 +272,6 @@ void Modeling_Block(const Block &block) {
 }
 
 void Modeling_Wall(void) {
-
 	float radius = 400;
 	float x = WIDTH / 2;
 	float y = HEIGHT / 2;
@@ -452,6 +492,7 @@ void Collision_Detection_With_Stick(void) {
 		printf("스틱과 충돌함\n");
 	}
 }
+
 // 성공
 void Collision_Detection_to_Brick(Block& block) {
 	if (block.visible) {
@@ -508,6 +549,10 @@ void Collision_Detection_to_Brick(Block& block) {
 	}
 }
 
+void Collision_Detection_to_Fixed_Brick(const Block& fixed_block) {
+
+
+}
 
 void frame_reset(void) {
 	glClearColor(0.0, 0.0, 0.0, 0.0); // 검은색 배경
@@ -521,7 +566,12 @@ void ball(void) {
 	for (int i = 0; i < num_blocks; i++) {
 		Collision_Detection_to_Brick(blocks[i]);
 	}
+	for (int i = 0; i < num_fixed_blocks; i++) {
+		Collision_Detection_to_Fixed_Brick(fixed_blocks[i]);
+	}
+
 	Collision_Detection_to_Sphere_Walls();
+
 	// 움직이는 공의 위치 변화 
 	moving_ball.x += ball_velocity.x;
 	moving_ball.y += ball_velocity.y;
@@ -585,11 +635,9 @@ void MySpecial(int key, int x, int y) {
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		//stick_x -= stick_velocity;
 		stick_rotation -= 2;
 		break;
 	case GLUT_KEY_RIGHT:
-		//stick_x += stick_velocity;
 		stick_rotation += 2;
 		break;
 	default:
@@ -620,6 +668,8 @@ void RenderScene(void) {
 
 	draw_stick_with_circular_motion();
 
+	draw_blocks_with_fixed();
+
 	// 글씨 출력해보기
 	char formattedText_x[255];
 	char formattedText_y[255];
@@ -644,6 +694,7 @@ void main(int argc, char** argv) {
 	glutCreateWindow("Bouncing Ball & Wall");
 	init();
 	init_blocks();
+	init_Fixed_blocks();
 	glutReshapeFunc(MyReshape);
 	glutDisplayFunc(RenderScene);
 	glutIdleFunc(RenderScene);
