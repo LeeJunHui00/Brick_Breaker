@@ -222,7 +222,7 @@ void init_Fixed_blocks(void) {
 
 	for (int row = 0; row < rows; row++) {
 		int numBlocksInRow = row + 1;
-		float y = 800 - row * (fixed_block_height + 15);
+		float y = 750 - row * (fixed_block_height + 15);
 		float margin_x = (WIDTH - numBlocksInRow * (fixed_block_width + 70)) / 2;
 		for (int j = 0; j < numBlocksInRow; j++) {
 			fixed_blocks[index].x = 35 + margin_x + j * (fixed_block_width + 70);
@@ -549,9 +549,34 @@ void Collision_Detection_to_Brick(Block& block) {
 	}
 }
 
-void Collision_Detection_to_Fixed_Brick(const Block& fixed_block) {
+void Collision_Detection_to_Fixed_Brick(Block& fixed_block) {
 
+	if (fixed_block.visible) {
+		float left_bound = moving_ball.x - moving_ball_radius;
+		float right_bound = moving_ball.x + moving_ball_radius;
+		float top_bound = moving_ball.y - moving_ball_radius;
+		float bottom_bound = moving_ball.y + moving_ball_radius;
 
+		float block_left = fixed_block.x;
+		float block_right = fixed_block.x + fixed_block.width;
+		float block_top = fixed_block.y;
+		float block_bottom = fixed_block.y + fixed_block.height;
+
+		if (left_bound <= block_right && right_bound >= block_left && top_bound <= block_bottom && bottom_bound >= block_top) {
+			float dx = moving_ball.x - (fixed_block.x + fixed_block.width / 2);
+			float dy = moving_ball.y - (fixed_block.y + fixed_block.height / 2);
+
+			if (fabs(dx) > fabs(dy)) {
+				ball_velocity.x = -ball_velocity.x;
+			}
+			else {
+				ball_velocity.y = -ball_velocity.y;
+			}
+
+			printf("고정된 블럭과 충돌\n");
+			fixed_block.visible = false;
+		}
+	}
 }
 
 void frame_reset(void) {
