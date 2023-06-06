@@ -18,8 +18,6 @@ int		bottom = 0;
 
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 float	wall_radius;
-//float	stick_x, stick_y;				// 스틱의 가로,세로
-float	stick_velocity = 30;			// 스틱 움직이는 속도
 
 const int	num_blocks = 8;				// 움직이는 블럭 개수 설정
 const int	num_fixed_blocks = 24;		// 고정된 블럭 개수 설정
@@ -29,7 +27,8 @@ float	block_rotation = 0.0;
 float	block_rotation_speed = 0.02;
 
 float	stick_radius = 300;
-float	stick_rotation = -110.0;
+float	stick_velocity = 30;			// 스틱 움직이는 속도
+float	stick_rotation = -90.0;
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -129,14 +128,18 @@ void Collision_Detection_to_Fixed_Brick(const Block& fixed_block);
 // 키보드 입력 함수
 void Mykey(unsigned char key, int x, int y);
 
+// 다음 충돌체크 두번하기
+bool Next_Ball_Collision_Detection_With_Stick(void);
+
+
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
 	moving_ball.x = WIDTH / 2;
-	moving_ball.y = HEIGHT / 2 -300;
+	moving_ball.y = HEIGHT / 2 -350;
 
-	ball_velocity.x = 0.3;
-	ball_velocity.y = 0.5;
+	ball_velocity.x = 0.0;
+	ball_velocity.y = 0.0;
 
 	// 벽 초기 위치
 	wall_radius = 400;
@@ -147,7 +150,7 @@ void init(void) {
 	block_rotation += block_rotation_speed;
 
 	stick.width = 25.0;
-	stick.height = 95.0;
+	stick.height = 100.0;
 
 }
 
@@ -244,9 +247,7 @@ void init_Fixed_blocks(void) {
 void draw_blocks_with_fixed(void) {
 
 	for (int i = 0; i < num_fixed_blocks; i++) {
-		//glPushMatrix();
 		Modeling_Fixed_blocks(fixed_blocks[i]);
-		//glPopMatrix();
 	}
 }
 
@@ -297,6 +298,10 @@ void Modeling_Wall(void) {
 		if (i > 240 && i <300) {
 			glColor3f(1.0, 0.0, 0.0);
 		}
+		// safe 라인
+		else if (i > 180) {
+			glColor3f(0.0, 1.0, 0.0);
+		}
 		else {
 			glColor3f(1.0, 1.0, 1.0);
 		}
@@ -333,10 +338,10 @@ void Collision_Detection_to_Sphere_Walls(void) {
 			theta = atan2(moving_ball.y - wall.y, moving_ball.x - wall.x) * (180 / PI);
 			printf("%f\n", theta);
 
-			if (theta >= -130 && theta < -50) {
+			if (theta >= -120 && theta < -55) {
 				printf("데드라인에 충돌되었습니다\n");
-				ball_velocity.x = 0;
-				ball_velocity.y = 0;
+				//ball_velocity.x = 0;
+				//ball_velocity.y = 0;
 			}
 
 			// 충돌 지점에서의 공의 속도와 법선 벡터의 내적 계산
@@ -478,61 +483,90 @@ void Collision_Detection_to_Walls(void) {
 //	}
 //}
 
-
-void Collision_Detection_With_Stick(void) {
+bool Next_Ball_Collision_Detection_With_Stick(void) {
 	Point rotated_stick;
 	Point local_ball, rotated_ball;
 	Point dist, unit_dist, overlap, rotated_velocity;
 
+	Point next_ball_position;
+
 	float dotProduct, norm;
 	float distance_from_center = 350;
+
+	next_ball_position.x = moving_ball.x + ball_velocity.x;
+	next_ball_position.y = moving_ball.y + ball_velocity.y;
 
 	rotated_stick.x = wall.x + distance_from_center * cos(stick_rotation * PI / 180);
 	rotated_stick.y = wall.y + distance_from_center * sin(stick_rotation * PI / 180);
 
 	// 공의 로컬 좌표 계산
-	local_ball.x = moving_ball.x - rotated_stick.x;
-	local_ball.y = moving_ball.y - rotated_stick.y;
+	local_ball.x = next_ball_position.x - rotated_stick.x;
+	local_ball.y = next_ball_position.y - rotated_stick.y;
 
 	float radian_angle = -(stick_rotation * PI / 180);
 
 	rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
-	rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle);
+	rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle) + 50;
 
 	if (rotated_ball.x >= 0 && rotated_ball.x <= stick.width && rotated_ball.y >= 0 && rotated_ball.y <= stick.height) {
-		overlap.x = (stick.width / 2 + moving_ball_radius) - fabs(rotated_ball.x - stick.width / 2);
-		overlap.y = (stick.height / 2 + moving_ball_radius) - fabs(rotated_ball.y - stick.height / 2);
+		return TRUE;
+	}
+	else {
+		return FALSE;
+	}
+}
 
-		rotated_velocity.x = ball_velocity.x * cos(radian_angle) - ball_velocity.y * sin(radian_angle);
-		rotated_velocity.y = ball_velocity.x * sin(radian_angle) + ball_velocity.y * cos(radian_angle);
+void Collision_Detection_With_Stick(void) {
 
-		// 충돌이 일어난 축에 따라 속도를 음수로 바꾸어 공을 반사시키도록 합니다
-		//if (overlap.x >= overlap.y) {
-		//	rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
-		//}
-		//else {
-		//	rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
-		//}
-		if (overlap.x > 0 && overlap.y > 0) {
-			if (overlap.x >= overlap.y) {
-				rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
+	if (Next_Ball_Collision_Detection_With_Stick()) {
+		Point rotated_stick;
+		Point local_ball, rotated_ball;
+		Point dist, unit_dist, overlap, rotated_velocity;
+
+		float dotProduct, norm;
+		float distance_from_center = 350;
+
+		rotated_stick.x = wall.x + distance_from_center * cos(stick_rotation * PI / 180);
+		rotated_stick.y = wall.y + distance_from_center * sin(stick_rotation * PI / 180);
+
+		// 공의 로컬 좌표 계산
+		local_ball.x = moving_ball.x - rotated_stick.x;
+		local_ball.y = moving_ball.y - rotated_stick.y;
+
+		float radian_angle = -(stick_rotation * PI / 180);
+
+		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
+		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle) + 50;
+
+		if (rotated_ball.x >= 0 && rotated_ball.x <= stick.width && rotated_ball.y >= 0 && rotated_ball.y <= stick.height) {
+			overlap.x = (stick.width / 2 + moving_ball_radius) - fabs(rotated_ball.x - stick.width / 2);
+			overlap.y = (stick.height / 2 + moving_ball_radius) - fabs(rotated_ball.y - stick.height / 2);
+
+			rotated_velocity.x = ball_velocity.x * cos(radian_angle) - ball_velocity.y * sin(radian_angle);
+			rotated_velocity.y = ball_velocity.x * sin(radian_angle) + ball_velocity.y * cos(radian_angle);
+
+			// 충돌이 일어난 축에 따라 속도를 음수로 바꾸어 공을 반사시키도록 합니다
+			if (overlap.x > 0 && overlap.y > 0) {
+				if (overlap.x >= overlap.y) {
+					rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
+				}
+				else {
+					rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
+				}
 			}
-			else {
+			else if (overlap.x > 0 && overlap.y <= 0) {
 				rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
 			}
-		}
-		else if (overlap.x > 0 && overlap.y <= 0) {
-			rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
-		}
-		else if (overlap.y > 0 && overlap.x <= 0) {
-			rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
-		}
+			else if (overlap.y > 0 && overlap.x <= 0) {
+				rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
+			}
 
-		// 공의 속도 회전 원래 축으로 되돌리기
-		ball_velocity.x = rotated_velocity.x * cos(-radian_angle) - rotated_velocity.y * sin(-radian_angle);
-		ball_velocity.y = rotated_velocity.x * sin(-radian_angle) + rotated_velocity.y * cos(-radian_angle);
+			// 공의 속도 회전 원래 축으로 되돌리기
+			ball_velocity.x = rotated_velocity.x * cos(-radian_angle) - rotated_velocity.y * sin(-radian_angle);
+			ball_velocity.y = rotated_velocity.x * sin(-radian_angle) + rotated_velocity.y * cos(-radian_angle);
 
-		printf("스틱과 충돌함\n");
+			printf("스틱과 충돌함\n");
+		}
 	}
 }
 
@@ -576,12 +610,6 @@ void Collision_Detection_to_Brick(Block& block) {
 			rotated_velocity.y = ball_velocity.x * sin(radian_angle) + ball_velocity.y * cos(radian_angle);
 
 			// 충돌이 일어난 축에 따라 속도를 음수로 바꾸어 공을 반사시키도록 합니다
-			//if (overlap.x >= overlap.y) {
-			//	rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
-			//}
-			//else {
-			//	rotated_velocity.x = -rotated_velocity.x; // X 축 속도 변경
-			//}
 			if (overlap.x > 0 && overlap.y > 0) {
 				if (overlap.x >= overlap.y) {
 					rotated_velocity.y = -rotated_velocity.y; // Y 축 속도 변경
@@ -738,21 +766,20 @@ void draw_blocks_with_circular_motion(void) {
 void draw_stick_with_circular_motion(void) {
 
 	glPushMatrix();
-
 	glTranslatef(WIDTH / 2, HEIGHT / 2, 0.0f);
 	glRotatef(stick_rotation + 360.0f, 0.0f, 0.0f, 1.0f);
-	glTranslatef(350, 0.0f, 0.0f);
+	//glTranslatef(360, 0.0f, 0.0f);
+	glTranslatef(360, -50.0f, 0.0f);
 	Modeling_Stick();
+
+	// 스틱을 움직일 수 있는 최대 범위
 	if (stick_rotation <= -180.0) {
 		stick_rotation = -180.0;
 	}
-	else if (stick_rotation > -10.0) {
-		stick_rotation = -10.0;
+	else if (stick_rotation > 0.0) {
+		stick_rotation = 0.0;
 	}
-
-	// printf("%f\n", stick_rotation);
 	glPopMatrix();
-
 }
 
 
@@ -819,13 +846,18 @@ void Mykey(unsigned char key, int x, int y) {
 	switch (key)
 	{
 	case 'r':
-		// 초기화 함수
+		init();
+		init_blocks();
+		init_Fixed_blocks();
+		break;
+	case 's':
+		ball_velocity.x = 0.3;
+		ball_velocity.y = 0.5;
 		break;
 	default:
 		break;
 	}
 	glutPostRedisplay();
-
 }
 
 void main(int argc, char** argv) {
