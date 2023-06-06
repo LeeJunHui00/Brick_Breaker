@@ -126,6 +126,9 @@ void draw_blocks_with_fixed(void);
 // 고정된 블럭 충돌 체크 함수
 void Collision_Detection_to_Fixed_Brick(const Block& fixed_block);
 
+// 키보드 입력 함수
+void Mykey(unsigned char key, int x, int y);
+
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
 	moving_ball_radius = 10.0;
@@ -812,6 +815,18 @@ void RenderScene(void) {
 	glFlush();
 }
 
+void Mykey(unsigned char key, int x, int y) {
+	switch (key)
+	{
+	case 'r':
+		// 초기화 함수
+		break;
+	default:
+		break;
+	}
+	glutPostRedisplay();
+
+}
 
 void main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -822,6 +837,7 @@ void main(int argc, char** argv) {
 	init();
 	init_blocks();
 	init_Fixed_blocks();
+	glutKeyboardFunc(Mykey);
 	glutReshapeFunc(MyReshape);
 	glutDisplayFunc(RenderScene);
 	glutIdleFunc(RenderScene);
