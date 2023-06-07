@@ -15,6 +15,7 @@
 
 int		left = 0;
 int		bottom = 0;
+bool	start_check;
 
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 float	wall_radius;
@@ -24,11 +25,14 @@ const int	num_fixed_blocks = 24;		// 고정된 블럭 개수 설정
 
 float	block_radius = 100;
 float	block_rotation = 0.0;
-float	block_rotation_speed = 0.02;
+float	block_rotation_speed;
 
 float	stick_radius = 300;
 float	stick_velocity = 30;			// 스틱 움직이는 속도
-float	stick_rotation = -90.0;
+float	stick_rotation;
+
+float	game_page = 0;
+int		score;
 
 // 공의 위치 정보를 저장할 구조체
 typedef struct _Point {
@@ -99,7 +103,7 @@ void RenderScene(void);
 void frame_reset(void);
 
 // 텍스트 출력 함수
-void displayText(float x, float y, float r, float g, float b, const char* str);
+void displayText(float x, float y, float r, float g, float b, const char* str, int num);
 
 // 벽 그리는 함수
 void Modeling_Wall(void);
@@ -131,6 +135,16 @@ void Mykey(unsigned char key, int x, int y);
 // 다음 충돌체크 두번하기
 bool Next_Ball_Collision_Detection_With_Stick(void);
 
+// 메인 화면
+void MainPage(void);
+
+// 사망 창
+void DiePage(void);
+
+// 클리어 창
+void ClearPage(void);
+
+void info(void);
 
 void init(void) {
 	// 움직이는 공의 반지름과 초기 위치, 속도 설정
@@ -151,7 +165,11 @@ void init(void) {
 
 	stick.width = 25.0;
 	stick.height = 100.0;
+	stick_rotation = -90.0;
 
+	score = 0;
+
+	start_check = FALSE;
 }
 
 
@@ -161,6 +179,7 @@ void init_blocks(void) {
 	float	distance_from_center = 100;
 	float	block_angle;
 
+	block_rotation_speed = 0.02;
 	for (int i = 0; i < num_blocks; i++) {
 		//blocks[i].x = 200 + i * (block_width + 50);
 		//blocks[i].y = 500;
@@ -194,18 +213,20 @@ void	Modeling_Circle(float radius, Point CC) {
 }
 
 void Modeling_Stick(void) {
-	glColor3f(0.0, 0.6, 0.6);
+	glShadeModel(GL_SMOOTH);//그라데이션으로 다각형을 채움
 	glBegin(GL_POLYGON);
-	// 가로
-	//glVertex2f(stick_x, stick_y);
-	//glVertex2f(stick_x + 95.0, stick_y);
-	//glVertex2f(stick_x + 95.0, stick_y + 25.0);
-	//glVertex2f(stick_x, stick_y + 25.0);
 
 	// 세로
+	glColor3f(1.0, 1.0, 1.0);
 	glVertex2f(stick.x, stick.y);
+
+	glColor3f(0.9, 0.9, 0.0);
 	glVertex2f(stick.x + stick.width, stick.y);
+	
+	glColor3f(0.9, 0.0, 0.9);
 	glVertex2f(stick.x + stick.width, stick.y + stick.height);
+
+	glColor3f(1.0, 1.0, 1.0);
 	glVertex2f(stick.x, stick.y + stick.height);
 
 	glEnd();
@@ -336,12 +357,14 @@ void Collision_Detection_to_Sphere_Walls(void) {
 
 		if (length >= wall_radius) {
 			theta = atan2(moving_ball.y - wall.y, moving_ball.x - wall.x) * (180 / PI);
-			printf("%f\n", theta);
+			//printf("%f\n", theta);
 
 			if (theta >= -120 && theta < -55) {
 				printf("데드라인에 충돌되었습니다\n");
-				//ball_velocity.x = 0;
-				//ball_velocity.y = 0;
+				ball_velocity.x = 0;
+				ball_velocity.y = 0;
+				DiePage();
+				
 			}
 
 			// 충돌 지점에서의 공의 속도와 법선 벡터의 내적 계산
@@ -629,8 +652,11 @@ void Collision_Detection_to_Brick(Block& block) {
 			ball_velocity.x = rotated_velocity.x * cos(-radian_angle) - rotated_velocity.y * sin(-radian_angle);
 			ball_velocity.y = rotated_velocity.x * sin(-radian_angle) + rotated_velocity.y * cos(-radian_angle);
 
+
+
 			printf("블록과 충돌함\n");
 			block.visible = false;
+			score += 10;
 		}
 	}
 }
@@ -708,6 +734,7 @@ void Collision_Detection_to_Fixed_Brick(Block& fixed_block) {
 			ball_velocity.y -= 2 * dotProduct * unit_sdist.y;
 
 			fixed_block.visible = false;
+			score += 10;
 		}
 	}
 }
@@ -783,12 +810,19 @@ void draw_stick_with_circular_motion(void) {
 }
 
 
-void displayText(float x, float y, float r, float g, float b, const char* str) {
+void displayText(float x, float y, float r, float g, float b, const char* str, int num) {
 	glColor3f(r, g, b);
 	glRasterPos2f(x, y);
 
-	for (const char* c = str; *c != '\0'; ++c) {
-		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);
+	if (num == 0) {
+		for (const char* c = str; *c != '\0'; ++c) {
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
+		}
+	}
+	else if (num == 1) {
+		for (const char* c = str; *c != '\0'; ++c) {
+			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+		}
 	}
 }
 
@@ -811,32 +845,49 @@ void MySpecial(int key, int x, int y) {
 void RenderScene(void) {
 	// 화면 배경색 설정
 	frame_reset();
+	if (game_page == 0) {
+		MainPage();
+		//glutSwapBuffers();
+		//glFlush();
+	}
 
-	// 벽 그리기
-	Modeling_Wall();
+	else if (game_page == 1) {
 
-	// 공 그리기
-	ball();
+		// 벽 그리기
+		Modeling_Wall();
 
-	// 스틱 그리기
-	//Modeling_Stick();
 
-	draw_blocks_with_circular_motion();
+		// 스틱 그리기
+		//Modeling_Stick();
 
-	draw_stick_with_circular_motion();
+		draw_blocks_with_circular_motion();
 
-	draw_blocks_with_fixed();
+		draw_stick_with_circular_motion();
 
-	// 글씨 출력해보기
-	char formattedText_x[255];
-	char formattedText_y[255];
+		draw_blocks_with_fixed();
 
-	sprintf(formattedText_x, "x speed : %f", ball_velocity.x);
-	sprintf(formattedText_y, "y speed : %f", ball_velocity.y);
+		// 공 그리기
+		ball();
 
-	displayText(0.0f, 13.0f, 1.0f, 1.0f, 1.0f, formattedText_x);
-	displayText(0.0f, 3.0f, 1.0f, 1.0f, 1.0f, formattedText_y);
-	//
+		// 글씨 출력해보기
+		char formattedText_x[255];
+		char formattedText_y[255];
+
+		sprintf(formattedText_x, "score : %d", score);
+
+		displayText(0.0f, 13.0f, 1.0f, 1.0f, 1.0f, formattedText_x, 1);
+		
+		// printf("%d\n", score);
+		if (start_check == FALSE) {
+			info();
+		}
+
+	}
+	if (score == 320) {
+		ball_velocity.x = 0;
+		ball_velocity.y = 0;
+		ClearPage();
+	}
 
 	glutSwapBuffers();
 	glFlush();
@@ -851,14 +902,97 @@ void Mykey(unsigned char key, int x, int y) {
 		init_Fixed_blocks();
 		break;
 	case 's':
-		ball_velocity.x = 0.3;
-		ball_velocity.y = 0.5;
+		start_check = TRUE;
+		ball_velocity.x = 0.1;
+		ball_velocity.y = 0.3;
+		break;
+	case 32:
+		game_page = 1;
 		break;
 	default:
 		break;
 	}
 	glutPostRedisplay();
 }
+
+// game_mode == 0 일 때 실행
+void MainPage(void) {
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glBegin(GL_POLYGON);
+	glVertex2f(0.0f, 0.0f);
+	glVertex2f(0.0f, HEIGHT);
+	glVertex2f(WIDTH, HEIGHT);
+	glVertex2f(WIDTH, 0);
+	glEnd();
+
+
+	// 글씨 출력해보기
+	char start_text[255];
+
+	sprintf(start_text, "Press SpaceBar to Play");
+
+	displayText(WIDTH / 2 - 100, HEIGHT / 2, 1.0f, 1.0f, 1.0f, start_text, 0);
+}
+
+void DiePage(void) {
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_POLYGON);
+    glVertex2f(400, 400);
+    glVertex2f(800, 400);
+    glVertex2f(800, 600);
+    glVertex2f(400, 600);
+	glEnd();
+
+	block_rotation_speed = 0;
+
+	char die_text[255];
+	char die_text_1[255];
+
+	sprintf(die_text, "Game Over");
+	sprintf(die_text_1, "Press 'R' to Restart");
+
+	displayText(WIDTH / 2 - 60, HEIGHT / 2 + 100, 1.0f, 1.0f, 1.0f, die_text, 0);
+	displayText(WIDTH / 2 - 60, HEIGHT / 2 + 70, 1.0f, 1.0f, 1.0f, die_text_1, 0);
+}
+
+void ClearPage(void) {
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glBegin(GL_POLYGON);
+	glVertex2f(400, 400);
+	glVertex2f(800, 400);
+	glVertex2f(800, 600);
+	glVertex2f(400, 600);
+	glEnd();
+
+	block_rotation_speed = 0;
+
+	char clear_text[255];
+	char clear_text_1[255];
+
+	sprintf(clear_text, "Stage Clear!");
+	sprintf(clear_text_1, "Congratulations!");
+
+	displayText(WIDTH / 2 - 60, HEIGHT / 2 + 100, 1.0f, 1.0f, 1.0f, clear_text, 0);
+	displayText(WIDTH / 2 - 60, HEIGHT / 2 + 70, 1.0f, 1.0f, 1.0f, clear_text_1, 0);
+}
+
+void info(void) {
+	glColor3f(1.0f, 1.0f, 1.0f);
+	//glBegin(GL_POLYGON);
+	//glVertex2f(400, 500);
+	//glVertex2f(800, 500);
+	//glVertex2f(800, 600);
+	//glVertex2f(400, 600);
+	//glEnd();
+
+
+	char info_text[255];
+
+	sprintf(info_text, "Press 'S' to start");
+
+	displayText(WIDTH / 2 - 80, HEIGHT / 2 - 300, 0.0f, 0.0f, 0.0f, info_text, 0);
+}
+
 
 void main(int argc, char** argv) {
 	glutInit(&argc, argv);
