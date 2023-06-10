@@ -20,7 +20,7 @@ bool	start_check;
 float	moving_ball_radius;				// 움직이는 공의 반지름 
 float	wall_radius;
 
-const int	num_blocks = 8;				// 움직이는 블럭 개수 설정
+const int	num_blocks = 18;				// 움직이는 블럭 개수 설정
 const int	num_fixed_blocks = 24;		// 고정된 블럭 개수 설정
 
 float	block_radius = 100;
@@ -181,11 +181,6 @@ void init_blocks(void) {
 
 	block_rotation_speed = 0.02;
 	for (int i = 0; i < num_blocks; i++) {
-		//blocks[i].x = 200 + i * (block_width + 50);
-		//blocks[i].y = 500;
-
-		//blocks[i].x = 200;
-		//blocks[i].y = 200;
 		blocks[i].width = block_width;
 		blocks[i].height = block_height;
 		blocks[i].visible = true;
@@ -197,7 +192,6 @@ void MyReshape(int w, int h) {
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	// 마우스 왼쪽 버튼 클릭 시 좌표계 원점 이동
 	gluOrtho2D(left, left + WIDTH, bottom, bottom + HEIGHT); // mouse2()
 }
 
@@ -217,16 +211,16 @@ void Modeling_Stick(void) {
 	glBegin(GL_POLYGON);
 
 	// 세로
-	glColor3f(1.0, 1.0, 1.0);
+	glColor3f(0.161, 0.196, 0.235);
 	glVertex2f(stick.x, stick.y);
 
-	glColor3f(0.9, 0.9, 0.0);
+	glColor3f(0.282, 0.333, 0.388);
 	glVertex2f(stick.x + stick.width, stick.y);
 	
-	glColor3f(0.9, 0.0, 0.9);
+	glColor3f(0.282, 0.333, 0.388);
 	glVertex2f(stick.x + stick.width, stick.y + stick.height);
 
-	glColor3f(1.0, 1.0, 1.0);
+	glColor3f(0.161, 0.196, 0.235);
 	glVertex2f(stick.x, stick.y + stick.height);
 
 	glEnd();
@@ -253,7 +247,6 @@ void init_Fixed_blocks(void) {
 			index++;
 		}
 	}
-
 }
 
 void draw_blocks_with_fixed(void) {
@@ -265,11 +258,18 @@ void draw_blocks_with_fixed(void) {
 
 void Modeling_Fixed_blocks(const Block &fixed_block) {
 	if (fixed_block.visible) {
-		glColor3f(0.5, 0.5, 0.5);
+		glShadeModel(GL_SMOOTH);	//그라데이션으로 다각형을 채움
 		glBegin(GL_POLYGON);
-		glVertex2f(fixed_block.x , fixed_block.y);
+		glColor3f(0.961 , 0.969, 0.980);
+		glVertex2f(fixed_block.x, fixed_block.y);
+
+		glColor3f(0.765, 0.812, 0.886);
 		glVertex2f(fixed_block.x + fixed_block.width, fixed_block.y);
+
+		glColor3f(0.765, 0.812, 0.886);
 		glVertex2f(fixed_block.x + fixed_block.width, fixed_block.y + fixed_block.height);
+
+		glColor3f(0.961, 0.969, 0.980);
 		glVertex2f(fixed_block.x, fixed_block.y + fixed_block.height);
 		glEnd();
 	}
@@ -277,11 +277,18 @@ void Modeling_Fixed_blocks(const Block &fixed_block) {
 
 void Modeling_Block(const Block &block) {
 	if (block.visible) {
-		glColor3f(0.5, 0.5, 0.5);
+		glShadeModel(GL_SMOOTH);//그라데이션으로 다각형을 채움
 		glBegin(GL_POLYGON);
+		glColor3f(0.949, .949, 0.949);
 		glVertex2f(block.x, block.y);
+
+		glColor3f(0.839, 0.886, 0.961);
 		glVertex2f(block.x + block.width, block.y);
+
+		glColor3f(0.839, 0.886, 0.961);
 		glVertex2f(block.x + block.width, block.y + block.height);
+
+		glColor3f(0.949, 0.949, 0.949);
 		glVertex2f(block.x, block.y + block.height);
 		glEnd();
 	}
@@ -326,34 +333,40 @@ void Modeling_Wall(void) {
 }
 
 void Collision_Detection_to_Sphere_Walls(void) {
-	float distance;
-	float dotProduct;
-	float length, theta;
+	float distance;				// 공과 원형 벽 사이의 거리
+	float dotProduct;			// 공의 속도 벡터와 법선 벡터의 내적
+	float length, theta;		// 법선 벡터의 길이, 공의 극좌표계 각도
 
-	Point norm;	// 충돌 지점과 벽의 중심을 연결한 벡터
+	Point norm; // 충돌 지점과 벽의 중심을 연결한 벡터(법선 벡터)
 
 	// 공과 벽과의 거리 계산
 	distance = sqrt(pow(moving_ball.x - wall.x, 2) + pow(moving_ball.y - wall.y, 2));
 
+	// 공의 반지름과 벽의 반지름의 합보다 거리가 작거나 같으면 충돌이 발생
 	if (distance <= (wall_radius + moving_ball_radius)) {
 		// 충돌 지점과 벽 중심 사이의 법선 백터 구하기
 		norm.x = moving_ball.x - wall.x;
 		norm.y = moving_ball.y - wall.y;		
 
+		// 법선 벡터의 길이(크기) 계산
 		length = sqrt(pow(norm.x, 2) + pow(norm.y,2));
 
+		// 법선 벡터를 정규화(단위 벡터로 만들기)
 		norm.x /= length;
 		norm.y /= length;
 
+		// 벽에 설정된 데드라인 각도 범위에 따라 충돌 여부 판단
 		if (length >= wall_radius) {
+
 			theta = atan2(moving_ball.y - wall.y, moving_ball.x - wall.x) * (180 / PI);
+
+			// 데드라인에 충돌한 경우 공의 속도를 0으로 설정함, DiePage() 실행
 			if (theta >= -120 && theta < -60) {
-				printf("데드라인에 충돌되었습니다\n");
+				//printf("데드라인에 충돌되었습니다\n");
 				ball_velocity.x = 0;
 				ball_velocity.y = 0;
 				DiePage();
 			}
-			printf("%f\n", theta);
 
 			// 충돌 지점에서의 공의 속도와 법선 벡터의 내적 계산
 			dotProduct = ball_velocity.x * norm.x + ball_velocity.y * norm.y;
@@ -409,6 +422,7 @@ void Collision_Detection_With_Stick(void) {
 		float dotProduct, norm;
 		float distance_from_center = 350;
 
+		// 회전된 스틱 위치 계산
 		rotated_stick.x = wall.x + distance_from_center * cos(stick_rotation * PI / 180);
 		rotated_stick.y = wall.y + distance_from_center * sin(stick_rotation * PI / 180);
 
@@ -418,15 +432,20 @@ void Collision_Detection_With_Stick(void) {
 
 		float radian_angle = -(stick_rotation * PI / 180);
 
+		// 회전된 좌표에서 공의 위치로 회전
 		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
 		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle) + 50;
 
+		// 공이 스틱 내부에 들어왔는지 확인
 		if (rotated_ball.x >= 0 && rotated_ball.x <= stick.width && rotated_ball.y >= 0 && rotated_ball.y <= stick.height) {
+			// 겹치는 부분 길이 계산
 			overlap.x = (stick.width / 2 + moving_ball_radius) - fabs(rotated_ball.x - stick.width / 2);
 			overlap.y = (stick.height / 2 + moving_ball_radius) - fabs(rotated_ball.y - stick.height / 2);
 
+			// 공의 속도를 회전 좌표계로 변환
 			rotated_velocity.x = ball_velocity.x * cos(radian_angle) - ball_velocity.y * sin(radian_angle);
 			rotated_velocity.y = ball_velocity.x * sin(radian_angle) + ball_velocity.y * cos(radian_angle);
+
 
 			// 충돌이 일어난 축에 따라 속도를 음수로 바꾸어 공을 반사시키도록 합니다
 			if (overlap.x > 0 && overlap.y > 0) {
@@ -448,7 +467,7 @@ void Collision_Detection_With_Stick(void) {
 			ball_velocity.x = rotated_velocity.x * cos(-radian_angle) - rotated_velocity.y * sin(-radian_angle);
 			ball_velocity.y = rotated_velocity.x * sin(-radian_angle) + rotated_velocity.y * cos(-radian_angle);
 
-			printf("스틱과 충돌함\n");
+			//printf("스틱과 충돌함\n");
 		}
 	}
 }
@@ -481,8 +500,10 @@ void Collision_Detection_to_Brick(Block& block) {
 		rotated_ball.x = local_ball.x * cos(radian_angle) - local_ball.y * sin(radian_angle);
 		rotated_ball.y = local_ball.x * sin(radian_angle) + local_ball.y * cos(radian_angle);
 
+		//printf("%d 번 블록 x : %f , y : %f\n", block_num, rotated_ball.x, rotated_ball.y);
 		// 충돌이 블록 내에서 발생하는지 확인 및 처리
 		if (rotated_ball.x >= 0 && rotated_ball.x <= block.width && rotated_ball.y >= 0 && rotated_ball.y <= block.height) {
+			// 
 			Point overlap;
 			overlap.x = (block.width / 2 + moving_ball_radius) - fabs(rotated_ball.x - block.width / 2);
 			overlap.y = (block.height / 2 + moving_ball_radius) - fabs(rotated_ball.y - block.height / 2);
@@ -514,7 +535,7 @@ void Collision_Detection_to_Brick(Block& block) {
 
 
 
-			printf("블록과 충돌함\n");
+			//printf("블록과 충돌함\n");
 			block.visible = false;
 			score += 10;
 		}
@@ -522,35 +543,36 @@ void Collision_Detection_to_Brick(Block& block) {
 }
 
 void Collision_Detection_to_Fixed_Brick(Block& fixed_block) {
-
+	// 블록이 화면에 표시되어 있으면 충돌 검사 수행
 	if (fixed_block.visible) {
 		float dotProduct, norm;
 
-		closet_stick.x = moving_ball.x;
-		closet_stick.y = moving_ball.y;
+		closet_block.x = moving_ball.x;
+		closet_block.y = moving_ball.y;
 
 		// 가장 가까운 위치
 		if (moving_ball.x < fixed_block.x) {
-			closet_stick.x = fixed_block.x;
+			closet_block.x = fixed_block.x;
 		}
 		else if (moving_ball.x > fixed_block.x + fixed_block.width) {
-			closet_stick.x = fixed_block.x + fixed_block.width;
+			closet_block.x = fixed_block.x + fixed_block.width;
 		}
 		if (moving_ball.y < fixed_block.y) {
-			closet_stick.y = fixed_block.y;
+			closet_block.y = fixed_block.y;
 		}
 		else if (moving_ball.y > fixed_block.y + fixed_block.height) {
-			closet_stick.y = fixed_block.y + fixed_block.height;
+			closet_block.y = fixed_block.y + fixed_block.height;
 		}
 
-		sdist.x = moving_ball.x - closet_stick.x;
-		sdist.y = moving_ball.y - closet_stick.y;
+		// 공과 가장 가까운 위치와의 거리 벡터 계산
+		sdist.x = moving_ball.x - closet_block.x;
+		sdist.y = moving_ball.y - closet_block.y;
 
 		// 거리 백터의 크기 계산
 		norm = sqrt(pow(sdist.x, 2) + pow(sdist.y, 2));
 
 		//공과 블럭이 충돌 했는지 확인
-		if (norm < (moving_ball_radius + fmin(95 / 2, 25 / 2))) {
+		if (norm < (moving_ball_radius + fixed_block.width/2)) {
 			// 법선 백터 계산
 			unit_sdist.x = sdist.x / norm;
 			unit_sdist.y = sdist.y / norm;
@@ -692,18 +714,17 @@ void RenderScene(void) {
 
 		// 글씨 출력해보기
 		char formattedText_x[255];
-		char formattedText_y[255];
 
 		sprintf(formattedText_x, "score : %d", score);
 
-		displayText(0.0f, 13.0f, 1.0f, 1.0f, 1.0f, formattedText_x, 1);
+		displayText(20.0f, HEIGHT-50, 1.0f, 1.0f, 1.0f, formattedText_x, 0);
 		
 		if (start_check == FALSE) {
 			info();
 		}
 
 	}
-	if (score == 320) {
+	if (score == 330) {
 		ball_velocity.x = 0;
 		ball_velocity.y = 0;
 		ClearPage();
